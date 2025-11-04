@@ -366,7 +366,7 @@ export function addMarker(map, post, supabase) {
 
       try {
         const res = await fetch(
-          "https://eispzocmbopasgcvgxmi.functions.supabase.co/v1/ai-rag-answer2",
+          "https://eispzocmbopasgcvgxmi.functions.supabase.co/ai-rag-answer2",
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -433,7 +433,7 @@ regenBtn.addEventListener("click", async (e) => {
 
   try {
     const res = await fetch(
-      "https://eispzocmbopasgcvgxmi.functions.supabase.co/v1/ai-rag-answer2",
+      "https://eispzocmbopasgcvgxmi.functions.supabase.co/ai-rag-answer2",
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -627,7 +627,7 @@ window.attachGlobalEvents = function (supabase) {
           .map((s) => s.trim());
 
         const res = await fetch(
-          "https://eispzocmbopasgcvgxmi.functions.supabase.co/v1/ai-rag-answer2",
+          "https://eispzocmbopasgcvgxmi.functions.supabase.co/ai-rag-answer2",
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
