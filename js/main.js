@@ -120,28 +120,48 @@ async function showPage(page) {
   }
 }
 
-// --- RAG資料一覧取得 ---
+// --- RAG資料一覧取得（完全版） ---
 async function loadDocumentsList() {
   const listContainer = document.getElementById('documents-list');
   if (!listContainer) return;
 
-  const { data, error } = await supabase
-    .from('documents')
-    .select('title')
-    .order('title', { ascending: true })
-    .limit(10000);
+  // 🔹 ページングで全件取得
+  let allDocs = [];
+  let from = 0;
+  const pageSize = 1000;
+  let hasMore = true;
 
-  if (error) {
-    console.error('❌ ドキュメント取得エラー:', error);
-    listContainer.textContent = '読み込みに失敗しました。';
-    return;
+  while (hasMore) {
+    const { data, error } = await supabase
+      .from('documents')
+      .select('id, title')
+      .order('title', { ascending: true })
+      .range(from, from + pageSize - 1);
+
+    if (error) {
+      console.error('❌ ドキュメント取得エラー:', error);
+      listContainer.textContent = '読み込みに失敗しました。';
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      hasMore = false;
+    } else {
+      allDocs = allDocs.concat(data);
+      from += pageSize;
+      console.log(`📄 取得件数: ${allDocs.length}`);
+      if (data.length < pageSize) hasMore = false;
+    }
   }
 
-  const uniqueTitles = [...new Set(data.map(d => d.title))];
+  // 🔹 タイトル重複を除外（必要なら）
+  const uniqueTitles = [...new Set(allDocs.map(d => d.title))];
+
   listContainer.innerHTML = uniqueTitles.length
     ? `<ul style="line-height:1.6;">${uniqueTitles.map(t => `<li>${t}</li>`).join('')}</ul>`
     : '登録されている資料はまだありません。';
 
+  // 🔹 リアルタイム更新購読
   supabase
     .channel('documents-updates')
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'documents' }, loadDocumentsList)
