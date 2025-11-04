@@ -1,0 +1,753 @@
+/* ======== 基本構造 ======== */
+html, body {
+  height: 100%;
+  margin: 0;
+  font-family: system-ui, -apple-system, "Noto Sans JP", sans-serif;
+  background-color: #fafafa;
+  color: #222;
+}
+/* ✓ 置き換え */
+#map {
+  height: 100%;
+  position: relative !important; /* ← これで子のz-indexが効く */
+}
+
+
+/* ===== 投稿モーダル全体 ===== */
+.modal {
+  position: fixed;
+  inset: 0; /* top, right, bottom, left = 0 */
+  display: none; /* デフォルト非表示 */
+  align-items: center; /* ← 縦中央寄せ */
+  justify-content: center; /* ← 横中央寄せ */
+  background: rgba(0, 0, 0, 0.4); /* 背景の暗幕 */
+  z-index: 10000;
+}
+
+.modal.show {
+  display: flex; /* ← 表示時はflexで中央配置 */
+}
+
+/* ===== 投稿モーダル（返信欄と統一デザイン） ===== */
+.modal-inner {
+  background: #fff;
+  border-radius: 12px;
+  padding: 18px 20px;
+  width: 90%;
+  max-width: 420px;
+  max-height: 85vh;          /* 画面の85%までで制限 */
+  overflow-y: auto;          /* はみ出したら内部でスクロール */
+  min-height: 0; 
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.modal-inner h3 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+  color: #111;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 6px;
+}
+
+.modal-inner label {
+  font-size: 13px;
+  color: #666;
+  margin-top: 6px;
+}
+
+.modal-inner input,
+.modal-inner textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 14px;
+  font-family: inherit;
+  background: #fafafa;
+}
+
+.modal-inner textarea {
+  height: 100px;
+  resize: vertical;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.actions button {
+  border: none;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+#cancelBtn {
+  background: #e5e7eb;
+  color: #333;
+}
+
+#submitBtn {
+  background: #111827;
+  color: #fff;
+}
+
+.actions button:hover {
+  opacity: 0.9;
+}
+
+
+
+/* ======== Leaflet ポップアップ（見やすい整形版） ======== */
+.leaflet-popup-content-wrapper {
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+  max-width: 460px !important;
+  width: auto !important;
+}
+.leaflet-popup-tip { background: #fff; }
+
+.leaflet-popup-content {
+  margin: 0 !important;
+  padding: 10px 12px !important;
+  font-family: system-ui, -apple-system, "Noto Sans JP", sans-serif;
+  font-size: 14.5px;
+  line-height: 1.45;
+  color: #222;
+  word-break: break-word;
+    max-height: 70vh;       /* 画面の7割程度に制限 */
+  overflow-y: auto;        /* はみ出たら内部でスクロール */
+  padding-right: 8px;      /* スクロールバー用の余白 */
+  box-sizing: border-box;
+}
+
+/* スクロールバーの見た目 */
+.leaflet-popup-content::-webkit-scrollbar {
+  width: 8px;
+}
+.leaflet-popup-content::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.25);
+  border-radius: 4px;
+}
+
+/* ======== 投稿ブロック ======== */
+.popup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 440px;
+}
+.popup-header {
+  display: flex;
+  flex-direction: column;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 4px;
+}
+.popup-name {
+  font-weight: 600;
+  font-size: 15px;
+  color: #111;
+  margin-bottom: 2px;
+}
+.popup-date {
+  font-size: 12px;
+  color: #777;
+}
+.popup-content {
+  
+  font-size: 14.5px;
+  color: #333;
+  white-space: pre-wrap;
+}
+
+/* ======== 返信ブロック ======== */
+.popup-replies {
+  margin-top: 8px;
+  padding-top: 4px;
+  border-top: 1px solid #ddd;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 160px;
+  overflow-y: auto;
+}
+.reply {
+  background: #fafafa;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  padding: 6px 8px;
+}
+.reply .reply-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2px;
+}
+.reply .reply-name {
+  font-weight: 600;
+  font-size: 13.5px;
+  color: #222;
+}
+.reply .reply-date {
+  font-size: 12px;
+  color: #888;
+}
+.reply .reply-content {
+  font-size: 13.5px;
+  color: #333;
+  white-space: pre-wrap;
+}
+
+/* ======== 返信フォーム ======== */
+.reply-form {
+  margin-top: 10px;
+  border-top: 1px solid #ddd;
+  padding-top: 8px;
+  display: flex;
+  flex-direction: column; /* ← 縦並びにする */
+  gap: 8px;               /* 各項目の間隔 */
+}
+
+.reply-form textarea {
+  width: 100%;
+  box-sizing: border-box; 
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 13.5px;
+  font-family: inherit;
+  height: 80px; /* ← ★ここで高さを指定（例：80px〜120px程度） */
+  resize: vertical; /* ← 手動でも伸縮できるようにする（任意） */
+}
+
+/* Leaflet ポリゴン選択時の黒い枠（フォーカスアウトライン）を無効化 */
+.leaflet-interactive:focus {
+  outline: none !important;
+}
+
+/* ピンの描画*/
+.custom-pin {
+  position: relative;
+}
+
+.custom-pin .pin-shape {
+  width: 22px;
+  height: 22px;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  box-shadow: 0 0 2px rgba(0,0,0,0.4);
+  margin-top: 4px;
+}
+
+.custom-pin .pin-shadow {
+  width: 8px;
+  height: 3px;
+  background: rgba(0,0,0,0.3);
+  border-radius: 50%;
+  position: absolute;
+  bottom: -2px;
+  left: 7px;
+}
+
+/* ======== トースト通知 ======== */
+.toast {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #111827;
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease, transform 0.4s ease;
+  z-index: 9999;
+}
+.toast.show {
+  opacity: 0.95;
+  transform: translateX(-50%) translateY(0);
+}
+
+.tab-menu {
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 6px;
+}
+.tab-btn {
+  flex: 1;
+  padding: 6px;
+  font-size: 13px;
+  border: none;
+  background: #eee;
+  cursor: pointer;
+}
+.tab-btn.active {
+  background: #0078d7;
+  color: white;
+  font-weight: bold;
+}
+
+/* =========================
+   🗂 タブ高さ完全固定（display切替対応版）
+========================= */
+
+/* タブ全体の中身を固定枠に収める */
+.tab-content {
+  height: 400px;           /* ← ← ★ ここで全タブ共通の高さを完全固定 */
+  overflow-y: auto;        /* ← 内容が多い場合は中でスクロール */
+  background: #fff;
+  box-sizing: border-box;
+  transition: opacity 0.25s ease;
+}
+
+/* 切り替え時もスムーズフェード（display変更と共存） */
+.tab-content[style*="display: none"] {
+  opacity: 0;
+}
+.tab-content[style*="display: block"] {
+  opacity: 1;
+}
+
+/* AIタブの内部デザイン（高さをそろえる） */
+.ai-box {
+  background: #f4f9ff;
+  border-left: 4px solid #0077cc;
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-size: 13px;
+  color: #333;
+  height: 100%; /* ← 親タブ領域と同じ高さに */
+  box-sizing: border-box;
+  overflow-y: auto;
+}
+
+.popup-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 16px;
+  padding-top: 6px;
+  margin-top: 6px;
+  border-top: none; /* ← hr代わりに上線をここで統一 */
+}
+
+/* ❤️ 賛同ボタン */
+.heart-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;          /* ← 💬 と統一 */
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #555;
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+.heart-btn.liked {
+  color: #e63946;
+}
+.heart-btn.bounce {
+  animation: bounce 0.3s ease;
+}
+@keyframes bounce {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.4); }
+  100% { transform: scale(1); }
+}
+
+/* 💬 コメント数 */
+.comment-count {
+  font-size: 16px;         /* ❤️ と同サイズに */
+  color: #555;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+
+/* --- ヘッダー（メニュー）固定を前提 --- */
+.navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 56px;
+  z-index: 6000;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end; /* ← コンテンツを右寄せ */
+  padding: 0 20px;           /* ✅ 右に20pxの余白を確保 */
+  background: #fff;          /* （背景が透ける場合は明示） */
+  box-sizing: border-box;    /* ✅ パディングを含めた幅計算 */
+}
+
+
+
+#sidebar {
+  width: clamp(260px, 24vw, 420px);
+  flex-shrink: 0;
+  position: fixed;            /* ← relative ではなく fixed */
+  top: 56px;                  /* ← ヘッダー下から開始 */
+  left: 5px;
+  height: calc(100vh - 56px); /* ← ヘッダー分を引いた高さ */
+  overflow-y: auto;           /* ← 内部スクロールを維持 */
+  background: #fff;
+  border-right: 1px solid #ccc;
+  box-shadow: 2px 0 8px rgba(0,0,0,0.15);
+  z-index: 5000;
+  
+}
+
+
+.about-page {
+  max-height: calc(100vh - 56px);
+  overflow-y: auto;
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+/* =========================
+   📱 スマホ対応調整（768px以下）
+========================= */
+@media (max-width: 768px) {
+  /* サイドバーは下スライド式 */
+  #sidebar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 50vh;
+    border-right: none;
+    border-top: 2px solid #ccc;
+    box-shadow: 0 -2px 6px rgba(0,0,0,0.2);
+    background: #fff;
+    overflow-y: auto;
+    transform: translateY(100%);
+    transition: transform 0.3s ease;
+    touch-action: pan-y; /* ← 縦方向のスクロールを許可 */
+    -webkit-overflow-scrolling: touch; /* ← iOSの慣性スクロールを有効化 */
+  }
+
+  /* 表示時（JSでclass追加） */
+  #sidebar.show {
+    transform: translateY(0);
+  }
+
+  /* 投稿ボタン小型化 */
+  #postBtn {
+    font-size: 14px;
+    padding: 10px 24px;
+    bottom: 16px;
+  }
+
+  /* モーダル内部の文字サイズ調整 */
+  .modal-inner {
+    width: 94%;
+    padding: 14px 16px;
+  }
+
+  .modal-inner h3 {
+    font-size: 16px;
+  }
+}
+
+/* ===============================
+   📱 モバイル対応UI
+=============================== */
+@media (max-width: 768px) {
+
+  /* --- 🍔 ハンバーガーメニュー --- */
+  .hamburger {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    width: 26px;
+    height: 20px;
+    cursor: pointer;
+  }
+
+  .hamburger span {
+    height: 3px;
+    background: #fff;
+    border-radius: 2px;
+    transition: all 0.3s ease;
+  }
+
+  /* 開閉アニメーション */
+  .hamburger.active span:nth-child(1) {
+    transform: translateY(8px) rotate(45deg);
+  }
+  .hamburger.active span:nth-child(2) {
+    opacity: 0;
+  }
+  .hamburger.active span:nth-child(3) {
+    transform: translateY(-8px) rotate(-45deg);
+  }
+
+  /* --- 🌐 ナビゲーションメニュー --- */
+  .navbar-menu {
+    position: fixed;
+    top: 56px;
+    right: 0;
+    background: #2c3e50;
+    flex-direction: column;
+    width: 60%;
+    height: calc(100vh - 56px);
+    padding: 16px;
+    box-shadow: -2px 0 6px rgba(0,0,0,0.3);
+    display: none;
+    z-index: 5000;
+  }
+
+  .navbar-menu.open {
+    display: flex;
+  }
+
+  .nav-link {
+    color: #fff;
+    font-size: 15px;
+    text-align: left;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+  }
+
+  /* --- 📋 サイドバー（意見一覧） --- */
+  #sidebar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 50vh;
+    background: #fff;
+    border-top: 2px solid #ccc;
+    box-shadow: 0 -2px 6px rgba(0,0,0,0.2);
+    overflow-y: auto;
+    transform: translateY(100%);
+    transition: transform 0.3s ease;
+    z-index: 4000;
+  }
+
+  #sidebar.show {
+    transform: translateY(0);
+  }
+
+  .sidebar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    background: #f3f4f6;
+    border-bottom: 1px solid #ddd;
+    font-weight: bold;
+  }
+
+  #closeSidebarBtn {
+    background: none;
+    border: none;
+    font-size: 14px;
+    color: #333;
+    cursor: pointer;
+  }
+
+  /* --- ➕ 投稿ボタン --- */
+  #postBtn {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 15px;
+    padding: 10px 28px;
+    background-color: #007bff;
+    color: #fff;
+    border-radius: 30px;
+    border: none;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+    z-index: 4500;
+  }
+
+  /* --- モーダル微調整 --- */
+  .modal-inner {
+    width: 94%;
+    padding: 14px 16px;
+  }
+}
+/* ============================
+   🧩 真っ白対策（地図高さを確保）
+============================ */
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+/* コンテンツ・ページ・マップの高さをしっかり確保 */
+main#content,
+.page,
+#map {
+  
+  height: 100%;
+  min-height: calc(100vh - 56px); /* ヘッダー分を引く */
+  display: block;
+}
+
+#sidebar {
+  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* === Leaflet ポップアップの✕ボタン拡大 === */
+.leaflet-popup-close-button {
+  font-size: 22px !important;   /* ← デフォルト 16px → 22pxに拡大 */
+  width: 28px !important;       /* ← クリック範囲を広げる */
+  height: 28px !important;
+  line-height: 24px !important;
+  top: 4px !important;          /* ← 上から少し離す */
+  right: 6px !important;        /* ← 右から少し離す */
+  color: #333 !important;       /* ← 色を濃く（見やすく） */
+  text-shadow: 0 1px 2px rgba(255,255,255,0.6);
+  transition: transform 0.15s ease, color 0.2s ease;
+}
+
+.leaflet-popup-close-button:hover {
+  transform: scale(1.2);
+  color: #000;
+}
+
+/* === Leaflet ポップアップの横幅・折り返し改善 === */
+.leaflet-popup-content-wrapper {
+  max-width: 420px !important;   /* ← 横幅の上限を固定（お好みで調整） */
+  width: auto !important;
+  word-wrap: break-word;         /* ← 長い単語を折り返し */
+  overflow-wrap: break-word;     /* ← モダンブラウザ用 */
+}
+
+.leaflet-popup-content {
+  white-space: normal !important;  /* ← 改行を許可 */
+  word-break: break-word !important;
+  overflow-wrap: anywhere;
+  line-height: 1.5;
+}
+
+/* 参考資料リンク（aタグ）の改行対応と見やすさ */
+.leaflet-popup-content a {
+  display: inline-block;           /* ← 改行可能に */
+  word-break: break-all;           /* ← 長いURLも強制折り返し */
+  color: #0078d7;
+  text-decoration: none;
+}
+.leaflet-popup-content a:hover {
+  text-decoration: underline;
+}
+
+/* =========================
+   📱 スマホ時のみ一覧を半透明に
+========================= */
+@media (max-width: 768px) {
+  #sidebar { z-index: 4000 !important; }
+  #sidebar.dimmed { z-index: 2000 !important; opacity: 0.4; }
+}
+
+
+/* 最前面に固定（親のz-indexに縛られない） */
+.leaflet-pane.leaflet-popup-pane {
+  position: fixed !important;     /* ← ビューポート基準に脱出 */
+  inset: 0;                       /* iOSでのズレ防止のため基準化 */
+  z-index: 12000 !important;      /* ← サイドバー(4000/2000)より上 */
+  pointer-events: auto !important;
+}
+
+/* ===============================
+   📱 モバイル用：オーバーレイポップ（Leafletを使わない）
+================================ */
+.overlay {
+  position: fixed;
+  inset: 0;
+  display: none;                 /* .show で表示 */
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.35);
+  z-index: 13000;                /* どのUIよりも前面 */
+}
+.overlay.show { display: flex; }
+
+.overlay-inner {
+  position: relative;
+  width: 92%;
+  max-width: 480px;
+  max-height: 85vh;
+  overflow: auto;
+  background: #fff;
+  border-radius: 12px;
+  padding: 12px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+}
+
+.overlay-close {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  font-size: 20px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+/* モバイル時に一覧が重ならないよう操作を遮断 */
+@media (max-width: 768px) {
+  #sidebar.dimmed {
+    opacity: 0;
+    z-index: 2000 !important;
+    pointer-events: none;     /* ← これが重要（タップをオーバーレイへ通す） */
+  }
+}
+
+.ai-box {
+  position: relative;
+  z-index: 2;
+}
+.ai-box .heart-btn {
+  pointer-events: auto;
+  z-index: 3;
+  color: #999;
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+.ai-box .heart-btn.liked {
+  color: #ff4b8b;
+}
+.ai-box .heart-btn:hover {
+  transform: scale(1.15);
+  color: #ff4b8b;
+}
+
+/* === 📚 参考資料リストの整列補正 === */
+.leaflet-popup-content ul {
+  list-style-type: disc !important;       /* 黒丸マーカーを強制表示 */
+  list-style-position: inside !important; /* ← outside → inside に変更 */
+  padding-left: 0 !important;             /* ← 余計な左余白を消す */
+
+}
+
+.leaflet-popup-content li {
+  margin-bottom: 2px;
+  line-height: 1.5;
+  word-break: break-all;
+}
+
+.leaflet-popup-content li a {
+  display: inline !important; /* ← inline-blockを打ち消す */
+  word-break: break-all;
+  overflow-wrap: anywhere;
+}
+
