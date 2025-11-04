@@ -60,6 +60,7 @@ async function showPage(page) {
       if (typeof window.attachGlobalEvents === 'function') {
         window.attachGlobalEvents(supabase);
       }
+      
     }
 
     console.log('✅ 意見マップ起動完了');
