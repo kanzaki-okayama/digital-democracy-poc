@@ -128,7 +128,8 @@ async function loadDocumentsList() {
   const { data, error } = await supabase
     .from('documents')
     .select('title')
-    .order('title', { ascending: true });
+    .order('title', { ascending: true })
+    .limit(10000);
 
   if (error) {
     console.error('❌ ドキュメント取得エラー:', error);
