@@ -145,8 +145,8 @@ async function showPage(page) {
 
         <section class="concept-section glass-card">
           <h3>コンセプト図</h3>
-          <a href="./data/2025-10-29 142909.png" target="_blank" class="concept-image-link">
-            <img src="./data/2025-10-29 142909.png" alt="デジタル民主主義概念図">
+          <a href="./data/2025-12-24 000042.png" target="_blank" class="concept-image-link">
+            <img src="./data/2025-12-24 000042.png" alt="デジタル民主主義概念図">
           </a>
         </section>
 
