@@ -1,0 +1,1169 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <title>デモクラシー・アリーナ - 議会価値分析</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" rel="stylesheet"
+        type="text/css" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"></script>
+    <style>
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden;
+            background-color: #0f172a;
+            color: #f8fafc;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        #mynetwork {
+            width: 100%;
+            height: 100vh;
+            background-color: #0f172a;
+        }
+
+        .overlay-ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            padding: 20px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            width: 340px;
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .overlay-ui::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .overlay-ui::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 2px;
+        }
+
+        .legend-box {
+            position: absolute;
+            bottom: 60px;
+            /* Moved up */
+            right: 20px;
+            z-index: 1000;
+            background: rgba(15, 23, 42, 0.9);
+            backdrop-filter: blur(8px);
+            color: white;
+            padding: 15px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 11px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #0f172a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            color: white;
+            flex-direction: column;
+        }
+
+        /* Score Bars */
+        .score-row {
+            margin-bottom: 12px;
+        }
+
+        .score-label-wrap {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+
+        .score-title {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #94a3b8;
+        }
+
+        .score-val {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #f8fafc;
+        }
+
+        .score-bar-bg {
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .score-bar-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 0.8s ease-out;
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .node-detail-content {
+            animation: fadeIn 0.4s ease-out;
+            color: #f8fafc;
+        }
+
+        .list-group-item {
+            color: #f8fafc !important;
+        }
+
+        .text-muted {
+            color: #94a3b8 !important;
+        }
+
+        .badge-category {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-weight: 700;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="loading" class="loading-overlay">
+        <div class="spinner-border text-light" role="status"></div>
+        <div class="mt-3">データを読み込んでいます...</div>
+    </div>
+
+    <div class="overlay-ui">
+        <h5 class="d-flex align-items-center">
+            <span class="me-2">🗳️</span> 議会データ・アナリティクス
+        </h5>
+        <div class="mb-3">
+            <input type="text" class="form-control form-control-sm bg-dark text-light border-secondary" id="searchNodes"
+                placeholder="事業名を検索..." oninput="filterNodes()">
+        </div>
+        <div class="d-grid gap-2">
+            <button class="btn btn-sm btn-outline-primary active" id="btn-std"
+                onclick="setMode('standard')">標準グラフ</button>
+            <button class="btn btn-sm btn-outline-success" id="btn-val" onclick="setMode('value_map')">価値軸グラフ</button>
+            <button class="btn btn-sm btn-outline-secondary mt-1" style="font-size: 0.7rem;" onclick="resetView()">🔄
+                表示を初期状態に戻す</button>
+        </div>
+        <hr class="border-secondary">
+        <div id="slider-container">
+            <!-- スライダーはJSで挿入 -->
+        </div>
+        <div>
+            <small class="text-muted text-uppercase fw-bold" style="font-size: 0.7rem;">選択中の詳細</small><br>
+            <div id="node-info" class="mt-2">事業を選択すると、その価値プロファイルと関連する意見が表示されます。</div>
+        </div>
+    </div>
+
+    <div class="legend-box">
+        <h6 class="mb-2"
+            style="font-size: 0.8rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px;">事業カテゴリ</h6>
+        <div id="category-legend" class="d-flex flex-column gap-1">
+            <!-- JSで動的に生成 -->
+        </div>
+    </div>
+
+    <div id="mynetwork"></div>
+
+    <script type="text/javascript">
+        // --- Configuration ---
+        const RAW_DATA_URL = 'merged_graph_refined.json';
+        const VALUE_MAP_URL = 'value_map.json';
+
+        let network = null;
+        let rawData = null; // {nodes: [], edges: []}
+        let valueMap = null; // {mappings: {...}}
+        let currentMode = 'standard';
+        let maxNodes = 50; // Default limit for display to reduce clutter
+
+        // Value Axes Definitions for Layout (Fixed positions for the "Arena")
+        // Exact Hexagon Calculation: R=500, Angles=270, 330, 30, 90, 150, 210
+        const VALUE_AXES_DEF = [
+            { id: 'v_efficiency', label: '経済・効率', color: '#FFD700', x: 0, y: -500, key: 'Economic_Efficiency' },
+            { id: 'v_fairness', label: '公正・公平', color: '#00BFFF', x: 433, y: -250, key: 'Fairness_Justice' },
+            { id: 'v_innovation', label: '成長・革新', color: '#FF4500', x: 433, y: 250, key: 'Growth_Innovation' },
+            { id: 'v_stability', label: '伝統・安定', color: '#D2691E', x: 0, y: 500, key: 'Tradition_Stability' },
+            { id: 'v_safety', label: '安全・安心', color: '#32CD32', x: -433, y: 250, key: 'Safety_Security' },
+            { id: 'v_sustainability', label: '持続可能性', color: '#2E8B57', x: -433, y: -250, key: 'Sustainability' }
+        ];
+
+        const CATEGORY_COLORS = {
+            "Administration": "#64748b",      // Steel Blue Gray
+            "Education_Culture": "#8b5cf6",   // Violet
+            "Health_Welfare": "#ec4899",      // Pink
+            "Industry_Economy": "#f59e0b",     // Amber
+            "Infrastructure_Env": "#10b981",   // Emerald
+            "Safety_Disaster": "#ef4444",      // Red
+            "Other": "#94a3b8"                 // Slate Gray
+        };
+
+        const CATEGORY_JA = {
+            "Administration": "行政・運営",
+            "Education_Culture": "教育・文化",
+            "Health_Welfare": "健康・福祉",
+            "Industry_Economy": "産業・経済",
+            "Infrastructure_Env": "インフラ・環境",
+            "Safety_Disaster": "安全・防災",
+            "Other": "その他"
+        };
+
+        const AXIS_MAPPING = {
+            "Economic_Efficiency": "v_efficiency",
+            "Fairness_Justice": "v_fairness",
+            "Safety_Security": "v_safety",
+            "Growth_Innovation": "v_innovation",
+            "Tradition_Stability": "v_stability",
+            "Sustainability": "v_sustainability"
+        };
+
+        let nodesDS = new vis.DataSet();
+        let edgesDS = new vis.DataSet();
+        let expandedNodes = new Set(); // Track which IDs (Project or Axis) are expanded
+
+        // Pre-indexed data for performance
+        let nodeMap = {}; // id -> node object
+        let adjMap = {};  // id -> list of connected node IDs (through edges)
+
+        async function init() {
+            try {
+                const [rawRes, mapRes] = await Promise.all([
+                    fetch(RAW_DATA_URL),
+                    fetch(VALUE_MAP_URL)
+                ]);
+
+                if (!rawRes.ok) throw new Error("データの読み込みに失敗しました");
+                rawData = await rawRes.json();
+
+                if (mapRes.ok) {
+                    valueMap = await mapRes.json();
+                } else {
+                    console.warn("価値マップが見つかりません。分析データなしで継続します。");
+                    valueMap = { mappings: {} };
+                }
+
+                // --- Pre-indexing for Performance ---
+                rawData.nodes.forEach(n => {
+                    nodeMap[n.id] = n;
+                    adjMap[n.id] = [];
+                });
+                rawData.edges.forEach(e => {
+                    if (adjMap[e.source]) adjMap[e.source].push(e.target);
+                    if (adjMap[e.target]) adjMap[e.target].push(e.source);
+                });
+
+                addSliderControl();
+                renderLegend();
+                document.getElementById('loading').style.display = 'none';
+                drawGraph('value_map');
+
+            } catch (e) {
+                console.error(e);
+                document.getElementById('loading').innerHTML = `<div class="text-danger">エラー: ${e.message}</div>`;
+            }
+        }
+
+        function renderLegend() {
+            const container = document.getElementById('category-legend');
+            let html = "";
+            Object.entries(CATEGORY_JA).forEach(([key, name]) => {
+                const color = CATEGORY_COLORS[key];
+                html += `
+                    <div class="d-flex align-items-center mb-1">
+                        <span style="display:inline-block; width:12px; height:12px; background:${color}; border-radius:50%; margin-right:8px; border:1px solid rgba(255,255,255,0.3);"></span>
+                        <span>${name}</span>
+                    </div>`;
+            });
+            container.innerHTML = html;
+        }
+
+        function addSliderControl() {
+            const container = document.getElementById('slider-container');
+            if (!container) return;
+
+            const sliderHtml = `
+                <div class="mb-3">
+                    <label for="nodeRange" class="form-label" style="font-size: 0.8rem;">表示する上位事業数: <span id="nodeCountVal" class="fw-bold text-primary">${maxNodes}</span></label>
+                    <input type="range" class="form-range custom-range" id="nodeRange" min="10" max="300" step="10" value="${maxNodes}">
+                </div>
+            `;
+            container.innerHTML = sliderHtml;
+
+            document.getElementById('nodeRange').addEventListener('input', (e) => {
+                maxNodes = parseInt(e.target.value);
+                document.getElementById('nodeCountVal').innerText = maxNodes;
+            });
+            document.getElementById('nodeRange').addEventListener('change', () => {
+                expandedNodes.clear(); // Clear expansion when changing filters
+                drawGraph(currentMode);
+            });
+        }
+
+        let searchFilter = "";
+        function filterNodes() {
+            searchFilter = document.getElementById('searchNodes').value.toLowerCase();
+            // We could redraw completely or just update hidden property
+            // To be fast, let's just redraw for now since it's only 50-300 nodes
+            drawGraph(currentMode);
+        }
+
+        function processDataForMode(mode) {
+            currentMode = mode;
+            let nodes = [];
+            let edges = [];
+
+            // --- Pre-calculation: Rank Projects by Connectivity ---
+            const projectDegrees = {};
+            rawData.nodes.forEach(n => {
+                if (n.type === 'Project') projectDegrees[n.id] = 0;
+            });
+            rawData.edges.forEach(e => {
+                if (projectDegrees[e.target] !== undefined) projectDegrees[e.target]++;
+                if (projectDegrees[e.source] !== undefined) projectDegrees[e.source]++;
+            });
+
+            // Get Top N Projects
+            const sortedProjects = Object.entries(projectDegrees)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, maxNodes)
+                .map(entry => entry[0]);
+
+            const topProjectsSet = new Set(sortedProjects);
+            const idSet = new Set();
+
+            // 1. Build Adjacency: Project <-> Opinion (Only for top projects)
+            const projectOpinionMap = {};
+
+            rawData.nodes.forEach(n => {
+                if (n.type === 'Project' && topProjectsSet.has(n.id)) {
+                    projectOpinionMap[n.id] = [];
+                }
+            });
+
+            rawData.edges.forEach(e => {
+                if (projectOpinionMap[e.target]) {
+                    projectOpinionMap[e.target].push(e.source);
+                } else if (projectOpinionMap[e.source]) {
+                    projectOpinionMap[e.source].push(e.target);
+                }
+            });
+
+            // 2. Nodes Processing
+            rawData.nodes.forEach(n => {
+                let processedNode = { ...n };
+                const analysis = valueMap.mappings[n.id];
+                let isVisible = false;
+
+                if (n.type === 'Project' && topProjectsSet.has(n.id)) {
+                    // Drill-down Logic: If something is expanded, hide all other projects ONLY IF a project is expanded
+                    const expandedProjectIds = Array.from(expandedNodes).filter(id => {
+                        const target = nodeMap[id];
+                        return target && target.type === 'Project';
+                    });
+
+                    // NEW: Ensure project is visible if any visible opinion targets it
+                    // To avoid a circular dependency in the loop, we check if any expanded speaker/axis is connected to this project via an opinion
+                    const hasActiveExpansionConnection = (adjMap[n.id] || []).some(oid => {
+                        const op = nodeMap[oid];
+                        if (op && op.type === 'Opinion') {
+                            return expandedNodes.has(op.id) || (adjMap[op.id] || []).some(sid => expandedNodes.has(sid));
+                        }
+                        return false;
+                    });
+
+                    if (expandedProjectIds.length > 0 && !expandedNodes.has(n.id) && !hasActiveExpansionConnection) {
+                        isVisible = false;
+                    } else {
+                        // Apply Search Filter
+                        if (searchFilter && !n.label.toLowerCase().includes(searchFilter)) {
+                            isVisible = false;
+                        } else {
+                            isVisible = true;
+                            const degree = projectDegrees[n.id] || 1;
+                            processedNode.size = Math.max(12, Math.min(45, 8 + Math.sqrt(degree) * 4.5));
+                            processedNode.font = { size: 14, color: '#f1f5f9', strokeWidth: 3, strokeColor: '#0f172a' };
+
+                            // Apply Category Color
+                            const cat = (analysis && analysis.category) || "Other";
+                            const baseColor = CATEGORY_COLORS[cat] || CATEGORY_COLORS["Other"];
+                            processedNode.color = {
+                                background: baseColor,
+                                border: '#fff',
+                                highlight: { background: baseColor, border: '#fff' },
+                                hover: { background: baseColor, border: '#fff' }
+                            };
+                            processedNode.shadow = { enabled: true, color: 'rgba(0,0,0,0.6)', size: 12, x: 0, y: 4 };
+
+                            // Add "+" if there are hidden opinions connected
+                            const nodeConns = adjMap[n.id] || [];
+                            const hasHiddenOpinions = nodeConns.some(cid => {
+                                const target = nodeMap[cid];
+                                return target && target.type === 'Opinion' && !idSet.has(cid);
+                            });
+                            if (hasHiddenOpinions) {
+                                processedNode.label = n.label + " +";
+                            }
+                        }
+                    }
+                    // Ensure expanded project is always visible to its children
+                    if (expandedNodes.has(n.id)) isVisible = true;
+                } else if (n.type === 'Opinion') {
+                    // Optimized check: Is this opinion connected to ANY currently expanded node that is a Project?
+                    let connectedToExpandedProject = false;
+                    const connections = adjMap[n.id] || [];
+                    for (let targetId of connections) {
+                        if (expandedNodes.has(targetId)) {
+                            const targetNode = nodeMap[targetId];
+                            if (targetNode && (targetNode.type === "Project" || targetNode.type === "Councilor" || targetNode.type === "Authority")) {
+                                connectedToExpandedProject = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    let matchesExpandedAxis = false;
+                    expandedNodes.forEach(expId => {
+                        if (expId.startsWith('v_')) {
+                            const axisDef = VALUE_AXES_DEF.find(a => a.id === expId);
+                            if (axisDef && analysis && analysis.values) {
+                                if ((analysis.values[axisDef.key] || 0) >= 5) {
+                                    matchesExpandedAxis = true;
+                                }
+                            }
+                        }
+                    });
+
+                    // Ensure expanded opinion is always visible
+                    if (expandedNodes.has(n.id)) isVisible = true;
+
+                    if (connectedToExpandedProject || matchesExpandedAxis || expandedNodes.has(n.id)) {
+                        isVisible = true;
+                        processedNode.shape = "dot";
+                        processedNode.color = "#10b981"; // Emerald
+                        processedNode.size = 15;
+                        processedNode.font = { color: "#fff", size: 14 };
+
+                        // Add "+" to label if it has unexpanded connections (like Speakers or Reasons)
+                        const nodeConns = adjMap[n.id] || [];
+                        const hasHiddenChildren = nodeConns.some(cid => !idSet.has(cid) && nodeMap[cid] && (nodeMap[cid].type === 'Councilor' || nodeMap[cid].type === 'Reason' || nodeMap[cid].type === 'Opinion'));
+                        if (hasHiddenChildren) {
+                            processedNode.label = n.label + " +";
+                        }
+
+                        if (mode === 'value_map') {
+                            // MATH: Position Opinion node based on its OWN value scores
+                            if (analysis && analysis.values) {
+                                let totalS = 0;
+                                let tx = 0; let ty = 0;
+                                Object.entries(analysis.values).forEach(([k, s]) => {
+                                    const axId = AXIS_MAPPING[k];
+                                    const ax = VALUE_AXES_DEF.find(a => a.id === axId);
+                                    if (ax && s > 0) {
+                                        tx += (ax.x * 2.8) * s;
+                                        ty += (ax.y * 2.8) * s;
+                                        totalS += s;
+                                    }
+                                });
+                                if (totalS > 0) {
+                                    processedNode.x = tx / totalS;
+                                    processedNode.y = ty / totalS;
+                                }
+                            }
+                        }
+                    }
+                } else if (n.type === 'Reason' || n.type === 'Councilor' || n.type === 'Authority') {
+                    // Show if connected to an expanded node (any mode)
+                    const connectedExpandedNodeId = (adjMap[n.id] || []).find(tid => expandedNodes.has(tid));
+
+                    if (connectedExpandedNodeId) {
+                        // Check if the expanded parent is ALSO visible in the current filter/idSet
+                        // Since idSet is populated in the same loop, we might have processing order issues.
+                        // However, project and opinions are usually processed before their children in rawData.
+                        // To be safe, we check the source nodes' visibility status directly.
+
+                        isVisible = true;
+
+                        if (mode === 'value_map' && (n.type === 'Councilor' || n.type === 'Authority')) {
+                            isVisible = false;
+                        } else {
+                            if (n.type === 'Councilor' || n.type === 'Authority') {
+                                processedNode.shape = n.type === 'Councilor' ? "dot" : "square";
+                                processedNode.color = n.type === 'Councilor' ? "#3b82f6" : "#1d4ed8";
+                                processedNode.size = 20;
+                                processedNode.font = { color: "#fff", size: 13, bold: true };
+                            } else {
+                                processedNode.shape = "dot";
+                                processedNode.color = "#64748b";
+                                processedNode.size = 10;
+                            }
+                        }
+                    }
+                }
+
+                if (isVisible) {
+                    nodes.push(processedNode);
+                    idSet.add(n.id);
+                }
+            });
+
+            // 3. Edges Processing
+            rawData.edges.forEach(e => {
+                if (idSet.has(e.source) && idSet.has(e.target)) {
+                    let edge = { ...e, from: e.source, to: e.target };
+                    if (mode === 'value_map') {
+                        const srcNode = rawData.nodes.find(n => n.id === e.source);
+                        const isOpinionRelated = srcNode && srcNode.type === "Opinion";
+
+                        if (isOpinionRelated) {
+                            edge.color = { color: '#10b981', opacity: 0.6 };
+                            edge.arrows = "to";
+                            edge.physics = true;
+                            edge.hidden = false;
+                        } else {
+                            edge.color = { color: '#ffffff', opacity: 0 };
+                            edge.physics = false;
+                            edge.hidden = true;
+                        }
+                    } else {
+                        // Standard Mode Edges: Visible
+                        edge.color = { color: '#64748b', opacity: 1.0 };
+                        edge.width = 1.5;
+                        edge.hidden = false;
+                    }
+                    edges.push(edge);
+                }
+            });
+
+            // 4. Value Mode Specifics
+            if (mode === 'value_map') {
+                // Add Axes
+                VALUE_AXES_DEF.forEach(axis => {
+                    nodes.push({
+                        id: axis.id,
+                        label: `<b>${axis.label}</b>`,
+                        color: {
+                            background: axis.color,
+                            border: '#fff'
+                        },
+                        shape: 'circle', // Automatically centers text
+                        margin: 25,
+                        font: {
+                            size: 44, // Slightly larger
+                            color: '#fff',
+                            face: 'arial',
+                            multi: 'html',
+                            bold: true,
+                            vadjust: 5 // Adjusted from 0 to improve vertical centering
+                        },
+                        fixed: true,
+                        x: axis.x * 2.8, // Slightly wider spread
+                        y: axis.y * 2.8,
+                        isAxis: true,
+                        shadow: { enabled: true, color: axis.color, size: 40, x: 0, y: 0 }
+                    });
+                });
+
+                // Attraction Edges
+                Object.keys(projectOpinionMap).forEach(projectId => {
+                    const opinionIds = projectOpinionMap[projectId];
+                    const valueSums = {};
+                    let validOpinionsCount = 0;
+
+                    let totalScoreAllAxes = 0;
+                    opinionIds.forEach(opId => {
+                        const opAnalysis = valueMap.mappings[opId];
+                        if (!opAnalysis || !opAnalysis.values) return;
+                        validOpinionsCount++;
+                        Object.entries(opAnalysis.values).forEach(([valKey, score]) => {
+                            const axisId = AXIS_MAPPING[valKey];
+                            if (axisId && score > 0) {
+                                valueSums[axisId] = (valueSums[axisId] || 0) + score;
+                                totalScoreAllAxes += score;
+                            }
+                        });
+                    });
+
+                    if (validOpinionsCount === 0) return;
+
+                    const pNode = nodes.find(n => n.id === projectId);
+                    if (pNode && totalScoreAllAxes > 0) {
+                        // MATH: Calculate weighted centroid (Center of Mass)
+                        let targetX = 0;
+                        let targetY = 0;
+                        Object.entries(valueSums).forEach(([axisId, score]) => {
+                            const axis = VALUE_AXES_DEF.find(a => a.id === axisId);
+                            // Scale the axis position same as axis nodes (x2.8)
+                            targetX += (axis.x * 2.8) * (score / totalScoreAllAxes);
+                            targetY += (axis.y * 2.8) * (score / totalScoreAllAxes);
+                        });
+
+                        // Set exact mathematical starting position
+                        pNode.x = targetX;
+                        pNode.y = targetY;
+
+                        // Add decorative links showing top pulls
+                        Object.entries(valueSums).forEach(([axisId, score]) => {
+                            const avgScore = score / validOpinionsCount;
+                            if (avgScore < 0.5) return; // Only show strong links
+                            edges.push({
+                                id: `val_link_${projectId}_${axisId}`,
+                                from: projectId,
+                                to: axisId,
+                                color: { color: VALUE_AXES_DEF.find(a => a.id === axisId).color, opacity: 0.1 },
+                                width: Math.max(1, avgScore),
+                                physics: false // Decorative only
+                            });
+                        });
+                    }
+                });
+            }
+
+            return { nodes, edges };
+        }
+
+        function drawGraph(mode) {
+            // Update UI buttons
+            document.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
+            if (mode === 'standard') document.querySelector('#btn-std').classList.add('active');
+            if (mode === 'value_map') document.querySelector('#btn-val').classList.add('active');
+
+            const { nodes, edges } = processDataForMode(mode);
+            const container = document.getElementById('mynetwork');
+
+            if (network === null) {
+                // Initialize DataSets and Network once
+                nodesDS = new vis.DataSet(nodes);
+                edgesDS = new vis.DataSet(edges);
+                const data = { nodes: nodesDS, edges: edgesDS };
+
+                // Physics settings tuned for the Arena
+                const physicsOptions = {
+                    enabled: true,
+                    stabilization: { enabled: true, iterations: 1000 },
+                    solver: 'barnesHut',
+                    barnesHut: {
+                        gravitationalConstant: -25000, // Even stronger repulsion
+                        centralGravity: 0.1,
+                        springLength: 350, // More space between opinions
+                        springConstant: 0.04,
+                        damping: 0.4, // Increased from 0.09 to reduce "drifting" feel
+                        avoidOverlap: 1.0
+                    }
+                };
+
+                if (mode === 'value_map') {
+                    physicsOptions.barnesHut.gravitationalConstant = -600;
+                    physicsOptions.barnesHut.centralGravity = 0.0;
+                    physicsOptions.barnesHut.springConstant = 0.02;
+                    physicsOptions.barnesHut.damping = 0.7;
+                    physicsOptions.barnesHut.avoidOverlap = 1.0;
+                }
+
+                const options = {
+                    layout: { randomSeed: 2 },
+                    nodes: {
+                        shape: 'dot',
+                        font: { strokeWidth: 2, strokeColor: '#000', multi: 'html' }
+                    },
+                    edges: {
+                        smooth: { type: 'continuous' }
+                    },
+                    physics: physicsOptions,
+                    interaction: {
+                        hover: true,
+                        tooltipDelay: 200,
+                        zoomView: true,
+                        dragNodes: true // Enable dragging for manual adjustments
+                    }
+                };
+
+                network = new vis.Network(container, data, options);
+
+                // --- INTERACTION: Double Click to Expand/Collapse ---
+                network.on("doubleClick", function (params) {
+                    if (params.nodes.length > 0) {
+                        const nodeId = params.nodes[0];
+                        const node = nodesDS.get(nodeId);
+
+                        // 1. Instantly clear selection to prevent stuck drag
+                        network.unselectAll();
+
+                        // 2. Use setTimeout to allow the browser to process the mouse event
+                        // before heavy DOM/Graph manipulation occurs.
+                        setTimeout(() => {
+                            if (node && node.isAxis) {
+                                if (expandedNodes.has(nodeId)) {
+                                    expandedNodes.delete(nodeId);
+                                } else {
+                                    expandedNodes.add(nodeId);
+                                }
+                            } else {
+                                if (expandedNodes.has(nodeId)) {
+                                    expandedNodes.delete(nodeId);
+                                } else {
+                                    if (currentMode === 'value_map' && node && node.type === 'Project') {
+                                        expandedNodes.clear();
+                                    }
+                                    expandedNodes.add(nodeId);
+
+                                    // Focus on expanded node
+                                    setTimeout(() => {
+                                        network.focus(nodeId, {
+                                            scale: 0.8,
+                                            animation: {
+                                                duration: 600, // Slightly faster for responsiveness
+                                                easingFunction: 'easeInOutQuad'
+                                            }
+                                        });
+                                    }, 100);
+                                }
+                            }
+                            showNodeInfo(nodeId);
+                            drawGraph(currentMode);
+                            // Highlight the expanded node immediately
+                            highlightNode(nodeId);
+                        }, 50);
+                    }
+                });
+
+                // --- INTERACTION: Click to Highlight & Side Panel ---
+                network.on("click", function (params) {
+                    if (params.nodes.length > 0) {
+                        highlightNode(params.nodes[0]);
+                    } else {
+                        highlightNode(null);
+                    }
+                });
+            } else {
+                // UPDATE DataSets instead of destroying
+                const currentNodes = nodesDS.get();
+                const newNodeIds = new Set(nodes.map(n => n.id));
+
+                // 1. Remove nodes that are no longer visible
+                const toRemove = currentNodes.filter(n => !newNodeIds.has(n.id)).map(n => n.id);
+                if (toRemove.length > 0) nodesDS.remove(toRemove);
+
+                // 2. Add or Update nodes
+                nodesDS.update(nodes);
+
+                // 3. Update Edges efficiently
+                const currentEdges = edgesDS.get();
+                const newEdgeIds = new Set(edges.map(e => e.id));
+                const toRemoveE = currentEdges.filter(e => !newEdgeIds.has(e.id)).map(e => e.id);
+                if (toRemoveE.length > 0) edgesDS.remove(toRemoveE);
+                edgesDS.update(edges);
+
+                // 4. Update Options for mode-specific physics
+                network.setOptions({ physics: physicsOptions });
+            }
+        }
+
+        function highlightNode(selectedNodeId) {
+            const allNodes = nodesDS.get();
+            const allEdges = edgesDS.get();
+            const selectedNode = nodesDS.get(selectedNodeId);
+
+            if (!selectedNodeId) {
+                // Reset View
+                if (network) network.unselectAll();
+                const resetNodes = allNodes.map(n => {
+                    let baseFontColor = "#ffffff";
+                    if (n.type === 'Project') baseFontColor = "#f1f5f9";
+                    if (n.isAxis) baseFontColor = "#ffffff";
+                    return { id: n.id, opacity: 1, font: { color: baseFontColor } };
+                });
+                nodesDS.update(resetNodes);
+                const animIds = allEdges.filter(e => e.id.toString().startsWith("anim_")).map(e => e.id);
+                if (animIds.length > 0) edgesDS.remove(animIds);
+                document.getElementById('node-info').innerHTML = '事業を選択すると、その価値プロファイルと関連する意見が表示されます。';
+                return;
+            }
+
+            // 1. Side Panel Update
+            showNodeInfo(selectedNodeId);
+
+            // 2. Highlighting
+            const connectedNodes = network.getConnectedNodes(selectedNodeId);
+            if (currentMode === 'value_map') {
+                const updateNodes = allNodes.map(n => {
+                    if (n.isAxis) return { id: n.id, opacity: 1 };
+                    const isSelected = n.id === selectedNodeId;
+                    const isRelated = connectedNodes.includes(n.id);
+                    const opac = (isSelected || isRelated) ? 1.0 : 0.15;
+                    const fontColor = opac === 1.0 ? "#ffffff" : "rgba(255,255,255,0.2)";
+                    return { id: n.id, opacity: opac, font: { color: fontColor } };
+                });
+                nodesDS.update(updateNodes);
+
+                // Attraction Animation Logic
+                const mapping = valueMap.mappings[selectedNodeId];
+                if (selectedNode && (selectedNode.type === "Project" || selectedNode.type === "Councilor" || selectedNode.type === "Authority") && mapping && mapping.values) {
+                    const newEdges = [];
+                    Object.entries(mapping.values).forEach(([valKey, score]) => {
+                        const axisId = AXIS_MAPPING[valKey];
+                        if (axisId && score > 0) {
+                            newEdges.push({
+                                id: `anim_${selectedNodeId}_${axisId}`,
+                                from: selectedNodeId,
+                                to: axisId,
+                                color: { color: VALUE_AXES_DEF.find(a => a.id === axisId).color, opacity: 0.8 },
+                                width: score * 1.2,
+                                dashes: true,
+                                physics: false
+                            });
+                        }
+                    });
+                    edgesDS.update(newEdges);
+                }
+            } else if (currentMode === 'standard') {
+                const updateNodes = allNodes.map(n => {
+                    const isSelected = n.id === selectedNodeId;
+                    const isRelated = connectedNodes.includes(n.id);
+                    const opac = (isSelected || isRelated) ? 1.0 : 0.3;
+                    const fontColor = opac === 1.0 ? (n.type === 'Project' ? "#f1f5f9" : "#ffffff") : "rgba(255,255,255,0.3)";
+
+                    return { id: n.id, opacity: opac, font: { color: fontColor } };
+                });
+                nodesDS.update(updateNodes);
+            }
+        }
+        function showNodeInfo(nodeId) {
+            const rawNode = rawData.nodes.find(n => n.id === nodeId);
+            const mapping = valueMap.mappings[nodeId];
+
+            if (!rawNode) return;
+
+            let html = `<div class="node-detail-content">`;
+
+            if (rawNode.type === "Project") {
+                const category = (mapping && mapping.category) || "Other";
+                const categoryJa = CATEGORY_JA[category] || "その他";
+                const catColor = CATEGORY_COLORS[category] || CATEGORY_COLORS["Other"];
+
+                const connectedEdges = rawData.edges.filter(e =>
+                    (e.target === nodeId && e.type === "TARGETS") ||
+                    (e.source === nodeId && e.type === "TARGETS")
+                );
+                const connectedOpIds = connectedEdges.map(e => e.source === nodeId ? e.target : e.source);
+                const connectedOps = rawData.nodes.filter(n => n.type === "Opinion" && connectedOpIds.includes(n.id));
+                const totalOpinionCount = connectedOps.reduce((sum, n) => sum + (n.count || 1), 0);
+                const uniqueThemesCount = connectedOps.length;
+
+                html += `
+                    <div class="mb-2">
+                        <span class="badge-category" style="background: ${catColor}33; color: ${catColor}; border: 1px solid ${catColor}66;">
+                            ${categoryJa}
+                        </span>
+                    </div>
+                    <h4 class="mb-1" style="font-weight: 800; line-height: 1.2; color: #f8fafc;">${rawNode.label}</h4>
+                    <div class="mb-3">
+                        <span class="badge bg-primary" style="font-size: 0.75rem;">意見総数: ${totalOpinionCount}件</span>
+                        <span class="badge bg-secondary" style="font-size: 0.75rem;">主要テーマ: ${uniqueThemesCount}件</span>
+                    </div>
+                `;
+
+                // --- Value Axis Scoring Section ---
+                if (mapping && mapping.values) {
+                    html += `
+                        <div class="mb-4">
+                            <div class="text-info small mb-3 fw-bold text-uppercase" style="letter-spacing: 0.05em; border-bottom: 1px solid rgba(13, 110, 253, 0.2); padding-bottom: 4px;">
+                                📊 価値軸プロファイル（全意見の平均）
+                            </div>
+                    `;
+
+                    VALUE_AXES_DEF.forEach(axis => {
+                        const score = mapping.values[axis.key] || 0;
+                        const percent = (score / 10) * 100;
+
+                        html += `
+                            <div class="score-row">
+                                <div class="score-label-wrap">
+                                    <span class="score-title" style="color: ${axis.color}; opacity: 0.9;">${axis.label.replace(/\n|\\n/g, ' ')}</span>
+                                    <span class="score-val">${score}</span>
+                                </div>
+                                <div class="score-bar-bg">
+                                    <div class="score-bar-fill" style="width: ${percent}%; background: ${axis.color}; box-shadow: 0 0 8px ${axis.color}44;"></div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    html += `</div>`;
+                } else {
+                    html += `
+                        <div class="alert alert-secondary py-2 px-3 mb-4" style="font-size: 0.75rem; background: rgba(255,255,255,0.05); color: #94a3b8; border: 1px dashed #334155;">
+                            価値分析データがまだ計算されていません。
+                        </div>
+                    `;
+                }
+
+                if (connectedOps.length > 0) {
+                    html += `
+                        <div class="mb-4">
+                            <div class="text-muted small mb-2 fw-bold text-uppercase" style="letter-spacing: 0.05em;">主要な意見・論点</div>
+                            <div class="list-group list-group-flush bg-transparent">
+                    `;
+                    const sortedOps = [...connectedOps].sort((a, b) => (b.count || 1) - (a.count || 1)).slice(0, 5);
+                    sortedOps.forEach(op => {
+                        html += `
+                            <div class="list-group-item bg-transparent border-secondary px-0 py-2" style="font-size: 0.8rem; border-style: dashed !important;">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="text-light">${op.label}</span>
+                                    <span class="badge bg-dark border border-secondary text-primary ms-2" style="font-size: 0.7rem; min-width: 35px;">+${op.count || 1}</span>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    html += `
+                            </div>
+                            <div class="mt-1"><small class="text-muted" style="font-size: 0.7rem;">※（+N）は類似する意見が集約された数です</small></div>
+                        </div>
+                    `;
+                }
+
+                if (mapping && mapping.reasoning) {
+                    html += `
+                        <div class="mb-4">
+                            <div class="text-muted small mb-2 fw-bold text-uppercase" style="letter-spacing: 0.05em;">AIによる構成分析</div>
+                            <p class="text-light" style="font-size: 0.85rem; line-height: 1.6; color: #cbd5e1; background: rgba(255,255,255,0.05); padding: 12px; border-radius: 8px;">
+                                ${mapping.reasoning}
+                            </p>
+                        </div>
+                    `;
+                }
+            } else if (rawNode.type === "Councilor" || rawNode.type === "Authority") {
+                const label = rawNode.type === "Councilor" ? "議員" : "当局";
+                const color = rawNode.type === "Councilor" ? "#3b82f6" : "#1d4ed8";
+
+                html += `
+                    <div class="mb-2">
+                        <span class="badge-category" style="background: ${color}33; color: ${color}; border: 1px solid ${color}66;">
+                            ${label}
+                        </span>
+                    </div>
+                    <h4 class="mb-1" style="font-weight: 800; color: #f8fafc;">${rawNode.label}</h4>
+                `;
+
+                if (mapping && mapping.values) {
+                    html += `
+                        <div class="mt-4 pt-3 border-top border-secondary">
+                            <div class="text-info small mb-3 fw-bold text-uppercase" style="letter-spacing: 0.05em; border-bottom: 1px solid rgba(13, 110, 253, 0.2); padding-bottom: 4px;">
+                                📊 ${label}の価値軸傾向（全発言の集計）
+                            </div>
+                    `;
+                    VALUE_AXES_DEF.forEach(axis => {
+                        const score = mapping.values[axis.key] || 0;
+                        if (score > 0) {
+                            const percent = (score / 10) * 100;
+                            html += `
+                                <div class="score-row">
+                                    <div class="score-label-wrap">
+                                        <span class="score-title" style="color: ${axis.color}; opacity: 0.9;">${axis.label.replace(/\n|\\n/g, ' ')}</span>
+                                        <span class="score-val">${score}</span>
+                                    </div>
+                                    <div class="score-bar-bg">
+                                        <div class="score-bar-fill" style="width: ${percent}%; background: ${axis.color}; box-shadow: 0 0 8px ${axis.color}44;"></div>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                    });
+                    html += `</div>`;
+                }
+
+                if (rawNode.metadata && rawNode.metadata.length > 0) {
+                    const uniqueMeetings = Array.from(new Set(rawNode.metadata.map(m => m.meeting))).filter(Boolean);
+                    html += `
+                        <div class="mt-4 pt-3 border-top border-secondary">
+                            <div class="text-muted small mb-2 fw-bold text-uppercase" style="letter-spacing: 0.05em;">
+                                📅 参加した主な会議（${uniqueMeetings.length}種類）
+                            </div>
+                            <div class="d-flex flex-wrap gap-1">
+                                ${uniqueMeetings.slice(0, 15).map(m => `
+                                    <span class="badge bg-dark border border-secondary text-muted" style="font-size: 0.65rem; font-weight: 400;">${m}</span>
+                                `).join('')}
+                                ${uniqueMeetings.length > 15 ? '<span class="text-muted small">...</span>' : ''}
+                            </div>
+                        </div>
+                    `;
+                }
+            } else if (rawNode.type === "Opinion") {
+                // Find target project name
+                const targetProjectIds = (adjMap[rawNode.id] || []).filter(tid => nodeMap[tid] && nodeMap[tid].type === 'Project');
+                const targetProjectName = targetProjectIds.length > 0 ? nodeMap[targetProjectIds[0]].label : "共通・汎用";
+
+                html += `
+                    <div class="mb-2">
+                        <span class="badge-category" style="background: rgba(16, 185, 129, 0.2); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.4);">
+                            意見・発言
+                        </span>
+                        <span class="ms-1 small text-muted" style="font-size: 0.7rem;">対象事業: ${targetProjectName}</span>
+                    </div>
+                    <h5 class="mb-2" style="font-weight: 700; color: #f1f5f9;">${rawNode.label}</h5>
+                `;
+
+                if (rawNode.is_merged) {
+                    html += `
+                        <div class="alert alert-info p-2 mb-3" style="font-size: 0.7rem; background: rgba(13, 110, 253, 0.1); border: 1px dashed rgba(13, 110, 253, 0.4); color: #9ec5fe;">
+                            🤖 <b>類似意見おまとめノード</b><br>
+                            このノードはAIによって類似する発言（全${rawNode.merged_count || 0}件）を一つにまとめたものです。
+                        </div>
+                    `;
+                }
+
+                html += `
+                    <div class="mb-3 p-3" style="background: rgba(255,255,255,0.03); border-radius: 8px;">
+                        <div class="text-muted small mb-1 fw-bold">発言要旨（代表）</div>
+                        <div style="font-size: 0.9rem; color: #e2e8f0; line-height: 1.5;">${rawNode.text || "なし"}</div>
+                    </div>
+                `;
+
+                if (rawNode.metadata && rawNode.metadata.length > 0) {
+                    html += `
+                        <div class="mt-4 pt-3 border-top border-secondary">
+                            <div class="text-muted small mb-2 fw-bold text-uppercase" style="letter-spacing: 0.05em;">発言詳細・メタデータ（${rawNode.metadata.length}件）</div>
+                            <div class="list-group list-group-flush bg-transparent" style="max-height: 350px; overflow-y: auto; scrollbar-width: thin; padding-right: 5px;">
+                                ${rawNode.metadata.map(m => `
+                                    <div class="list-group-item bg-transparent border-secondary px-0 py-2" style="font-size: 0.8rem; border-style: dashed !important;">
+                                        <div class="text-light mb-1" style="line-height: 1.4;">${m.text}</div>
+                                        <div class="d-flex justify-content-between" style="font-size: 0.65rem; color: #94a3b8;">
+                                            <span>👤 ${m.speaker || "不明"}</span>
+                                            <span>📅 ${m.date || ""}</span>
+                                        </div>
+                                        <div style="font-size: 0.65rem; color: #64748b;">📍 ${m.meeting || ""}</div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    const speaker = rawNode.context_speaker || rawNode.speaker || "不明";
+                    const date = rawNode.date || "不明";
+                    const meeting = rawNode.meeting_name || rawNode.meeting || "市議会 議事録";
+                    html += `
+                        <div class="mt-4 pt-3 border-top border-secondary">
+                            <div class="text-muted small mb-2 fw-bold">議事録メタデータ</div>
+                            <table class="table table-sm table-borderless text-light mb-0" style="font-size: 0.75rem;">
+                                <tr><td class="text-muted p-0" width="80">発言者:</td><td class="p-0">${speaker}</td></tr>
+                                <tr><td class="text-muted p-0">日付:</td><td class="p-0">${date}</td></tr>
+                                <tr><td class="text-muted p-0">会議名:</td><td class="p-0">${meeting}</td></tr>
+                            </table>
+                        </div>
+                    `;
+                }
+
+                const hasScores = mapping && mapping.values && Object.values(mapping.values).some(v => v > 0);
+
+                html += `
+                    <div class="mt-4 pt-3 border-top border-secondary">
+                        <div class="text-success small mb-3 fw-bold text-uppercase" style="letter-spacing: 0.05em; border-bottom: 1px solid rgba(16, 185, 129, 0.2); padding-bottom: 4px;">
+                            🎯 価値分類スコア
+                        </div>
+                `;
+
+                if (hasScores) {
+                    VALUE_AXES_DEF.forEach(axis => {
+                        const score = mapping.values[axis.key] || 0;
+                        if (score > 0) {
+                            const percent = (score / 10) * 100;
+                            html += `
+                                <div class="score-row">
+                                    <div class="score-label-wrap">
+                                        <span class="score-title" style="color: ${axis.color}; opacity: 0.9;">${axis.label.replace(/\n|\\n/g, ' ')}</span>
+                                        <span class="score-val">${score}</span>
+                                    </div>
+                                    <div class="score-bar-bg">
+                                        <div class="score-bar-fill" style="width: ${percent}%; background: ${axis.color}; box-shadow: 0 0 8px ${axis.color}44;"></div>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                    });
+                } else {
+                    html += `
+                        <div class="alert alert-secondary py-2 px-3 mb-0" style="font-size: 0.75rem; background: rgba(255,255,255,0.05); color: #94a3b8; border: 1px dashed #334155;">
+                            この発言からは特定の価値スコアが抽出されませんでした。
+                        </div>
+                    `;
+                }
+                html += `</div>`;
+            }
+
+            html += `
+                <div class="mt-3 border-top border-secondary pt-2">
+                    <small class="text-info d-block mb-1">💡 ヒント</small>
+                    <small class="text-muted d-block" style="font-size: 0.75rem;">・ノードをダブルクリックで全意見を展開</small>
+                    <small class="text-muted d-block" style="font-size: 0.75rem;">・意見をクリックして詳細を確認</small>
+                </div>
+            `;
+            html += `</div>`;
+            document.getElementById('node-info').innerHTML = html;
+        }
+
+        function setMode(mode) {
+            if (network) {
+                highlightNode(null); // Reset visual states before switching
+            }
+            drawGraph(mode);
+        }
+
+        function resetView() {
+            expandedNodes.clear();
+            searchFilter = "";
+            const searchInput = document.getElementById('searchNodes');
+            if (searchInput) searchInput.value = "";
+
+            if (network) {
+                highlightNode(null);
+                // Reset camera after a short delay to allow graph redrawing
+                setTimeout(() => {
+                    network.fit({
+                        animation: { duration: 800, easingFunction: 'easeInOutQuad' }
+                    });
+                }, 100);
+            }
+            drawGraph(currentMode);
+        }
+
+        init();
+
+    </script>
+</body>
+
+</html>

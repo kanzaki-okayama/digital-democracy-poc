@@ -4,190 +4,41 @@
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-261NR8CNL0"></script>
 <script>
   window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
+  function gtag() { dataLayer.push(arguments); }
   gtag('js', new Date());
 
   gtag('config', 'G-261NR8CNL0');
 </script>
+
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>デジタル民主主義PoC</title>
 
+  <!-- Fonts & Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=Noto+Sans+JP:wght@300;400;500;700&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
   <!-- Leaflet & CSS -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="css/style.css" />
   <link rel="icon" href="https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png" />
-
-  <style>
-    /* === 🧭 ナビゲーションバー === */
-    header.navbar {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 56px;
-      background-color: #2c3e50;
-      color: #fff;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 20px;
-      z-index: 3000;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-    }
-
-    .navbar-title {
-      font-weight: bold;
-      font-size: 18px;
-    }
-
-    nav.navbar-menu {
-      display: flex;
-      gap: 16px;
-    }
-
-    .nav-link {
-      color: #fff;
-      background: none;
-      border: none;
-      font-size: 15px;
-      cursor: pointer;
-      transition: color 0.2s;
-    }
-
-    .nav-link:hover {
-      color: #f1c40f;
-    }
-
-    /* === ページコンテンツ === */
-    main#content {
-      position: absolute;
-      top: 56px;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      overflow: hidden;
-    }
-
-    .page {
-      display: none;
-      width: 100%;
-      height: 100%;
-    }
-
-    .page.active {
-      display: block;
-    }
-
-    /* === Leafletマップ === */
-    #map {
-      width: 100%;
-      height: 100%;
-    }
-
-    /* --- 投稿ボタン --- */
-    #postBtn {
-      position: fixed;
-      bottom: 24px;
-      left: 50%;
-      transform: translateX(-50%);
-      background-color: #007bff;
-      color: #fff;
-      font-size: 16px;
-      font-weight: bold;
-      border: none;
-      border-radius: 28px;
-      padding: 12px 32px;
-      cursor: pointer;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.25);
-      transition: background-color 0.2s, transform 0.2s;
-      z-index: 5000; /* ← Leafletの上にくるよう強化 */
-    }
-
-    #postBtn:hover {
-      background-color: #0056b3;
-      transform: translateX(-50%) scale(1.05);
-    }
-
-    /* === 📱スマホ対応 === */
-    @media (max-width: 768px) {
-      /* タイトル中央寄せ */
-      .navbar-title {
-        margin: 0 auto;
-        font-size: 16px;
-      }
-
-      /* メニュー非表示（ハンバーガー開閉時に出す） */
-      nav.navbar-menu {
-        display: none;
-        flex-direction: column;
-        position: fixed;
-        top: 56px;
-        right: 0;
-        background: #2c3e50;
-        width: 60%;
-        height: calc(100vh - 56px);
-        padding: 16px;
-        box-shadow: -2px 0 6px rgba(0,0,0,0.3);
-        z-index: 3500;
-      }
-
-      nav.navbar-menu.open {
-        display: flex;
-      }
-
-      .nav-link {
-        color: #fff;
-        font-size: 15px;
-        text-align: left;
-        padding: 10px 0;
-        border-bottom: 1px solid rgba(255,255,255,0.1);
-      }
-
-      /* ハンバーガーボタン */
-      .hamburger {
-        display: flex;
-        flex-direction: column;
-        justify-content: space-around;
-        width: 26px;
-        height: 20px;
-        cursor: pointer;
-      }
-      .hamburger span {
-        height: 3px;
-        background: #fff;
-        border-radius: 2px;
-        transition: all 0.3s ease;
-      }
-      .hamburger.active span:nth-child(1) {
-        transform: translateY(8px) rotate(45deg);
-      }
-      .hamburger.active span:nth-child(2) {
-        opacity: 0;
-      }
-      .hamburger.active span:nth-child(3) {
-        transform: translateY(-8px) rotate(-45deg);
-      }
-
-
-      #postBtn {
-        font-size: 14px;
-        padding: 10px 24px;
-        bottom: 16px;
-      }
-    }
-  </style>
 </head>
 
 <body>
   <!-- 🧭 ナビゲーションバー -->
   <header class="navbar">
     <div class="navbar-title">デジタル民主主義PoC</div>
-    <!-- 🍔 ハンバーガーメニュー -->
+
+    <!-- 🍔 ハンバーガーメニュー (Mobile only) -->
     <div class="hamburger" id="hamburger">
       <span></span><span></span><span></span>
     </div>
+
     <nav class="navbar-menu" id="navbarMenu">
       <button class="nav-link" data-page="map">意見投稿マップ</button>
       <button class="nav-link" data-page="relation">関係性マップ</button>
@@ -198,22 +49,7 @@
 
   <!-- 🧩 コンテンツ領域 -->
   <main id="content">
-    <div id="mapPage" class="page active">
-      <!-- ✅ Leafletより上にボタン配置 -->
-      <div id="map"></div>
-
-      <!-- 📋 意見一覧（開閉式） -->
-      <aside id="sidebar">
-        <div class="sidebar-header">
-          <span>意見一覧</span>
-          <button id="closeSidebarBtn">✕</button>
-        </div>
-        <div id="sidebarContent"></div>
-      </aside>
-
-      <!-- ➕ 投稿ボタン -->
-      <button id="postBtn">＋ 新しい意見を投稿</button>
-    </div>
+    <!-- main.js によって動的にコンテンツが挿入されます -->
   </main>
 
   <!-- 💬 投稿モーダル -->
@@ -232,105 +68,23 @@
     </div>
   </div>
 
-<!-- 💬 投稿詳細オーバーレイ -->
-<div id="postOverlay" class="overlay" hidden>
-  <div class="overlay-inner">
-    <button id="closeOverlayBtn" class="overlay-close">✕</button>
-    <div id="overlayContent" class="overlay-content"></div>
+  <!-- 💬 投稿詳細オーバーレイ -->
+  <div id="postOverlay" class="overlay" hidden>
+    <div class="overlay-inner">
+      <button id="closeOverlayBtn" class="overlay-close">✕</button>
+      <div id="overlayContent" class="overlay-content"></div>
+    </div>
   </div>
-</div>
 
-
-  <!-- ✅ 必ず Leaflet を main.js より先に読み込む -->
+  <!-- ✅ Libraries -->
   <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 
-  <!-- 👇 これを最後に -->
-  <script type="module" src="js/main.js"></script>
+  <!-- 👇 Main logic -->
+  <script type="module" src="js/main.js?v=3"></script>
 
   <!-- トースト通知 -->
   <div id="toast" class="toast"></div>
-
-  <!-- 📱 UI制御スクリプト -->
-  <script>
-    document.addEventListener("DOMContentLoaded", () => {
-      const sidebar = document.getElementById("sidebar");
-      const postBtn = document.getElementById("postBtn");
-      const closeSidebarBtn = document.getElementById("closeSidebarBtn");
-      const hamburger = document.getElementById("hamburger");
-      const navbarMenu = document.getElementById("navbarMenu");
-      const navLinks = document.querySelectorAll(".nav-link");
-
-      // 🍔 ハンバーガーメニュー開閉
-      if (hamburger && navbarMenu) {
-        hamburger.addEventListener("click", () => {
-          hamburger.classList.toggle("active");
-          navbarMenu.classList.toggle("open");
-        });
-      }
-
-      // 🧭 ページ切替時はメニューを閉じる
-      navLinks.forEach(link => {
-        link.addEventListener("click", () => {
-          hamburger.classList.remove("active");
-          navbarMenu.classList.remove("open");
-        });
-      });
-    });
-  </script>
- <!-- 📱 スワイプで意見一覧を開閉（タッチパネル対応） -->
-  <script>
-    document.addEventListener("DOMContentLoaded", () => {
-      const sidebar = document.getElementById("sidebar");
-      if (!sidebar) return;
-
-      let startY = 0;
-      let currentY = 0;
-      let isDragging = false;
-
-      // --- Pointer系イベントを使用（マウス＋タッチ＋ペンすべて対応）
-      const startHandler = (e) => {
-        isDragging = true;
-        startY = e.clientY ?? e.touches?.[0]?.clientY;
-      };
-
-      const moveHandler = (e) => {
-        if (!isDragging) return;
-        currentY = e.clientY ?? e.touches?.[0]?.clientY;
-      };
-
-      const endHandler = () => {
-        if (!isDragging) return;
-        const diffY = currentY - startY;
-
-        // 下スワイプ → 閉じる
-        if (diffY > 80 && sidebar.classList.contains("show")) {
-          sidebar.classList.remove("show");
-        }
-        // 上スワイプ（画面下1/4から）→ 開く
-        else if (diffY < -80 && !sidebar.classList.contains("show")) {
-          const triggerZone = window.innerHeight * 0.75;
-          if (startY > triggerZone) {
-            sidebar.classList.add("show");
-          }
-        }
-
-        isDragging = false;
-        startY = 0;
-        currentY = 0;
-      };
-
-      // --- イベント登録（pointerイベント優先）
-      document.addEventListener("pointerdown", startHandler);
-      document.addEventListener("pointermove", moveHandler);
-      document.addEventListener("pointerup", endHandler);
-
-      // --- 古いブラウザ用fallback（touchイベント）
-      document.addEventListener("touchstart", startHandler);
-      document.addEventListener("touchmove", moveHandler);
-      document.addEventListener("touchend", endHandler);
-    });
-  </script>
 </body>
-</html>
 
+</html>

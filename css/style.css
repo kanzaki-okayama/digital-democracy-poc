@@ -1,753 +1,795 @@
-/* ======== 基本構造 ======== */
-html, body {
-  height: 100%;
+/* ======== Global Variables ======== */
+:root {
+  --primary: #2563eb;
+  --primary-hover: #1d4ed8;
+  --bg-color: #f8fafc;
+  --text-main: #1e293b;
+  --text-secondary: #64748b;
+  --radius-xl: 16px;
+  --radius-2xl: 24px;
+  --glass-bg: rgba(255, 255, 255, 0.85);
+  --glass-border: rgba(255, 255, 255, 0.5);
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --sidebar-width: 380px;
+}
+
+/* ======== Reset & Base ======== */
+* {
   margin: 0;
-  font-family: system-ui, -apple-system, "Noto Sans JP", sans-serif;
-  background-color: #fafafa;
-  color: #222;
-}
-/* ✓ 置き換え */
-#map {
-  height: 100%;
-  position: relative !important; /* ← これで子のz-indexが効く */
-}
-
-
-/* ===== 投稿モーダル全体 ===== */
-.modal {
-  position: fixed;
-  inset: 0; /* top, right, bottom, left = 0 */
-  display: none; /* デフォルト非表示 */
-  align-items: center; /* ← 縦中央寄せ */
-  justify-content: center; /* ← 横中央寄せ */
-  background: rgba(0, 0, 0, 0.4); /* 背景の暗幕 */
-  z-index: 10000;
-}
-
-.modal.show {
-  display: flex; /* ← 表示時はflexで中央配置 */
-}
-
-/* ===== 投稿モーダル（返信欄と統一デザイン） ===== */
-.modal-inner {
-  background: #fff;
-  border-radius: 12px;
-  padding: 18px 20px;
-  width: 90%;
-  max-width: 420px;
-  max-height: 85vh;          /* 画面の85%までで制限 */
-  overflow-y: auto;          /* はみ出したら内部でスクロール */
-  min-height: 0; 
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.modal-inner h3 {
-  margin: 0;
-  font-size: 17px;
-  font-weight: 600;
-  color: #111;
-  border-bottom: 1px solid #eee;
-  padding-bottom: 6px;
-}
-
-.modal-inner label {
-  font-size: 13px;
-  color: #666;
-  margin-top: 6px;
-}
-
-.modal-inner input,
-.modal-inner textarea {
-  width: 100%;
-  box-sizing: border-box;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  padding: 8px 10px;
-  font-size: 14px;
-  font-family: inherit;
-  background: #fafafa;
-}
-
-.modal-inner textarea {
-  height: 100px;
-  resize: vertical;
-}
-
-.actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-top: 10px;
-}
-
-.actions button {
-  border: none;
-  border-radius: 6px;
-  padding: 8px 12px;
-  font-size: 14px;
-  cursor: pointer;
-  transition: 0.2s ease;
-}
-
-#cancelBtn {
-  background: #e5e7eb;
-  color: #333;
-}
-
-#submitBtn {
-  background: #111827;
-  color: #fff;
-}
-
-.actions button:hover {
-  opacity: 0.9;
-}
-
-
-
-/* ======== Leaflet ポップアップ（見やすい整形版） ======== */
-.leaflet-popup-content-wrapper {
-  background: #fff;
-  border-radius: 10px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.25);
-  max-width: 460px !important;
-  width: auto !important;
-}
-.leaflet-popup-tip { background: #fff; }
-
-.leaflet-popup-content {
-  margin: 0 !important;
-  padding: 10px 12px !important;
-  font-family: system-ui, -apple-system, "Noto Sans JP", sans-serif;
-  font-size: 14.5px;
-  line-height: 1.45;
-  color: #222;
-  word-break: break-word;
-    max-height: 70vh;       /* 画面の7割程度に制限 */
-  overflow-y: auto;        /* はみ出たら内部でスクロール */
-  padding-right: 8px;      /* スクロールバー用の余白 */
+  padding: 0;
   box-sizing: border-box;
 }
 
-/* スクロールバーの見た目 */
-.leaflet-popup-content::-webkit-scrollbar {
-  width: 8px;
-}
-.leaflet-popup-content::-webkit-scrollbar-thumb {
-  background-color: rgba(0, 0, 0, 0.25);
-  border-radius: 4px;
-}
-
-/* ======== 投稿ブロック ======== */
-.popup {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  max-width: 440px;
-}
-.popup-header {
-  display: flex;
-  flex-direction: column;
-  border-bottom: 1px solid #eee;
-  padding-bottom: 4px;
-}
-.popup-name {
-  font-weight: 600;
-  font-size: 15px;
-  color: #111;
-  margin-bottom: 2px;
-}
-.popup-date {
-  font-size: 12px;
-  color: #777;
-}
-.popup-content {
-  
-  font-size: 14.5px;
-  color: #333;
-  white-space: pre-wrap;
+body {
+  font-family: 'Outfit', 'Noto Sans JP', sans-serif;
+  background-color: var(--bg-color);
+  color: var(--text-main);
+  line-height: 1.6;
+  overflow-x: hidden;
 }
 
-/* ======== 返信ブロック ======== */
-.popup-replies {
-  margin-top: 8px;
-  padding-top: 4px;
-  border-top: 1px solid #ddd;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  max-height: 160px;
-  overflow-y: auto;
-}
-.reply {
-  background: #fafafa;
-  border: 1px solid #eee;
-  border-radius: 8px;
-  padding: 6px 8px;
-}
-.reply .reply-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2px;
-}
-.reply .reply-name {
-  font-weight: 600;
-  font-size: 13.5px;
-  color: #222;
-}
-.reply .reply-date {
-  font-size: 12px;
-  color: #888;
-}
-.reply .reply-content {
-  font-size: 13.5px;
-  color: #333;
-  white-space: pre-wrap;
-}
-
-/* ======== 返信フォーム ======== */
-.reply-form {
-  margin-top: 10px;
-  border-top: 1px solid #ddd;
-  padding-top: 8px;
-  display: flex;
-  flex-direction: column; /* ← 縦並びにする */
-  gap: 8px;               /* 各項目の間隔 */
-}
-
-.reply-form textarea {
-  width: 100%;
-  box-sizing: border-box; 
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  padding: 6px 8px;
-  font-size: 13.5px;
-  font-family: inherit;
-  height: 80px; /* ← ★ここで高さを指定（例：80px〜120px程度） */
-  resize: vertical; /* ← 手動でも伸縮できるようにする（任意） */
-}
-
-/* Leaflet ポリゴン選択時の黒い枠（フォーカスアウトライン）を無効化 */
-.leaflet-interactive:focus {
-  outline: none !important;
-}
-
-/* ピンの描画*/
-.custom-pin {
-  position: relative;
-}
-
-.custom-pin .pin-shape {
-  width: 22px;
-  height: 22px;
-  border-radius: 50% 50% 50% 0;
-  transform: rotate(-45deg);
-  box-shadow: 0 0 2px rgba(0,0,0,0.4);
-  margin-top: 4px;
-}
-
-.custom-pin .pin-shadow {
-  width: 8px;
-  height: 3px;
-  background: rgba(0,0,0,0.3);
-  border-radius: 50%;
-  position: absolute;
-  bottom: -2px;
-  left: 7px;
-}
-
-/* ======== トースト通知 ======== */
-.toast {
-  position: fixed;
-  top: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: #111827;
-  color: #fff;
-  padding: 10px 20px;
-  border-radius: 8px;
-  font-size: 14px;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.4s ease, transform 0.4s ease;
-  z-index: 9999;
-}
-.toast.show {
-  opacity: 0.95;
-  transform: translateX(-50%) translateY(0);
-}
-
-.tab-menu {
-  display: flex;
-  justify-content: space-around;
-  margin-bottom: 6px;
-}
-.tab-btn {
-  flex: 1;
-  padding: 6px;
-  font-size: 13px;
-  border: none;
-  background: #eee;
-  cursor: pointer;
-}
-.tab-btn.active {
-  background: #0078d7;
-  color: white;
-  font-weight: bold;
-}
-
-/* =========================
-   🗂 タブ高さ完全固定（display切替対応版）
-========================= */
-
-/* タブ全体の中身を固定枠に収める */
-.tab-content {
-  height: 400px;           /* ← ← ★ ここで全タブ共通の高さを完全固定 */
-  overflow-y: auto;        /* ← 内容が多い場合は中でスクロール */
-  background: #fff;
-  box-sizing: border-box;
-  transition: opacity 0.25s ease;
-}
-
-/* 切り替え時もスムーズフェード（display変更と共存） */
-.tab-content[style*="display: none"] {
-  opacity: 0;
-}
-.tab-content[style*="display: block"] {
-  opacity: 1;
-}
-
-/* AIタブの内部デザイン（高さをそろえる） */
-.ai-box {
-  background: #f4f9ff;
-  border-left: 4px solid #0077cc;
-  border-radius: 6px;
-  padding: 10px 12px;
-  font-size: 13px;
-  color: #333;
-  height: 100%; /* ← 親タブ領域と同じ高さに */
-  box-sizing: border-box;
-  overflow-y: auto;
-}
-
-.popup-footer {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 16px;
-  padding-top: 6px;
-  margin-top: 6px;
-  border-top: none; /* ← hr代わりに上線をここで統一 */
-}
-
-/* ❤️ 賛同ボタン */
-.heart-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 16px;          /* ← 💬 と統一 */
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  color: #555;
-  transition: transform 0.2s ease, color 0.2s ease;
-}
-.heart-btn.liked {
-  color: #e63946;
-}
-.heart-btn.bounce {
-  animation: bounce 0.3s ease;
-}
-@keyframes bounce {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.4); }
-  100% { transform: scale(1); }
-}
-
-/* 💬 コメント数 */
-.comment-count {
-  font-size: 16px;         /* ❤️ と同サイズに */
-  color: #555;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-
-/* --- ヘッダー（メニュー）固定を前提 --- */
-.navbar {
+/* ======== Navbar ======== */
+header.navbar {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
-  height: 56px;
-  z-index: 6000;
+  height: 64px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--glass-border);
   display: flex;
   align-items: center;
-  justify-content: flex-end; /* ← コンテンツを右寄せ */
-  padding: 0 20px;           /* ✅ 右に20pxの余白を確保 */
-  background: #fff;          /* （背景が透ける場合は明示） */
-  box-sizing: border-box;    /* ✅ パディングを含めた幅計算 */
+  justify-content: space-between;
+  padding: 0 24px;
+  z-index: 1000;
+  box-shadow: var(--shadow-sm);
 }
 
+.navbar-title {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--primary);
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+}
 
+nav.navbar-menu {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
 
-#sidebar {
-  width: clamp(260px, 24vw, 420px);
+.nav-link {
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  padding: 8px 16px;
+  border-radius: 50px;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  white-space: nowrap;
+}
+
+.nav-link:hover {
+  color: var(--primary);
+  background: rgba(37, 99, 235, 0.08);
+}
+
+.nav-link.active {
+  color: #fff;
+  background: var(--primary);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+}
+
+/* ======== Hamburger (Mobile) ======== */
+.hamburger {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  width: 40px;
+  height: 40px;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+
+.hamburger:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.hamburger span {
+  display: block;
+  width: 100%;
+  height: 2.5px;
+  background: var(--text-main);
+  border-radius: 4px;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s;
+}
+
+.hamburger.active span:nth-child(1) {
+  transform: translateY(7.5px) rotate(45deg);
+}
+
+.hamburger.active span:nth-child(2) {
+  opacity: 0;
+}
+
+.hamburger.active span:nth-child(3) {
+  transform: translateY(-7.5px) rotate(-45deg);
+}
+
+/* ======== Layout ======== */
+#content {
+  min-height: calc(100vh - 64px);
+  margin-top: 64px;
+}
+
+#mapPage {
+  height: calc(100vh - 64px);
+}
+
+.page-container {
+  padding: 40px 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+  min-height: calc(100vh - 64px);
+  animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#mapPage.page-container {
+  padding: 0;
+  max-width: none;
+  height: calc(100vh - 64px);
+  display: flex;
+  overflow: hidden;
+  margin-top: 0;
+}
+
+/* ======== FAB logic ======== */
+.floating-btn {
+  position: fixed;
+  bottom: 32px;
+  right: 32px;
+  background: var(--primary);
+  color: #fff;
+  padding: 16px 28px;
+  border-radius: 50px;
+  font-weight: 700;
+  box-shadow: 0 10px 25px rgba(37, 99, 235, 0.35);
+  z-index: 1000;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Mobile: hide FAB when sidebar is open */
+@media (max-width: 768px) {
+  body.sidebar-open .floating-btn {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(20px);
+  }
+}
+
+.mobile-handle {
+  display: none;
+  width: 40px;
+  height: 5px;
+  background: #cbd5e1;
+  border-radius: 10px;
+  margin: 10px auto 0;
   flex-shrink: 0;
-  position: fixed;            /* ← relative ではなく fixed */
-  top: 56px;                  /* ← ヘッダー下から開始 */
-  left: 5px;
-  height: calc(100vh - 56px); /* ← ヘッダー分を引いた高さ */
-  overflow-y: auto;           /* ← 内部スクロールを維持 */
-  background: #fff;
-  border-right: 1px solid #ccc;
-  box-shadow: 2px 0 8px rgba(0,0,0,0.15);
-  z-index: 5000;
-  
 }
 
+/* ======== Leaflet Legend ======== */
+.map-legend {
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-md);
+  padding: 0;
+  overflow: hidden;
+  color: var(--text-main);
+  min-width: 154px;
+  z-index: 1000;
+  transition: all 0.3s ease;
+}
 
-.about-page {
-  max-height: calc(100vh - 56px);
+.legend-header {
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.4);
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.legend-header:hover {
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.legend-content {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+}
+
+.legend-item span {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  display: inline-block;
+}
+
+/* ======== Sidebar (PC) ======== */
+#sidebar {
+  width: var(--sidebar-width);
+  background: #fff;
+  border-right: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  z-index: 100;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 4px 0 10px rgba(0, 0, 0, 0.02);
+}
+
+.sidebar-header {
+  padding: 24px;
+  border-bottom: 1px solid #f1f5f9;
+  background: #fff;
+}
+
+.sidebar-header .title {
+  font-size: 1.1rem;
+  font-weight: 800;
+  margin-bottom: 20px;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sidebar-header select {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  font-size: 14px;
+  margin-bottom: 8px;
+  outline: none;
+  background: #f8fafc;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px;
+  transition: border-color 0.2s;
+}
+
+.sidebar-header select:focus {
+  border-color: var(--primary);
+  background-color: #fff;
+}
+
+.post-list {
+  flex: 1;
   overflow-y: auto;
   padding: 16px;
-  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background: #f8fafc;
 }
 
-/* =========================
-   📱 スマホ対応調整（768px以下）
-========================= */
-@media (max-width: 768px) {
-  /* サイドバーは下スライド式 */
-  #sidebar {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    height: 50vh;
-    border-right: none;
-    border-top: 2px solid #ccc;
-    box-shadow: 0 -2px 6px rgba(0,0,0,0.2);
-    background: #fff;
-    overflow-y: auto;
-    transform: translateY(100%);
-    transition: transform 0.3s ease;
-    touch-action: pan-y; /* ← 縦方向のスクロールを許可 */
-    -webkit-overflow-scrolling: touch; /* ← iOSの慣性スクロールを有効化 */
+.sidebar-post {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 24px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 220px;
+}
+
+.sidebar-post:hover {
+  border-color: var(--primary-hover);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.sidebar-post::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+  background: var(--category-color, #cbd5e1);
+}
+
+.sidebar-post-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  font-size: 13px;
+}
+
+.sidebar-post-name {
+  font-weight: 700;
+  color: var(--text-main);
+  background: rgba(0, 0, 0, 0.03);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.sidebar-post-date {
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+
+.sidebar-post-content {
+  font-size: 14px;
+  color: #334155;
+  line-height: 1.6;
+  margin-bottom: 16px;
+  display: -webkit-box !important;
+  -webkit-line-clamp: 4;
+  line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  flex: 1;
+}
+
+/* ======== Map ======== */
+#map {
+  flex: 1;
+  z-index: 10;
+}
+
+/* ======== Ideas Board ======== */
+.ideas-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 28px;
+}
+
+.idea-card {
+  background: #fff;
+  border-radius: var(--radius-xl);
+  border: 1px solid #e2e8f0;
+  overflow: hidden;
+  transition: transform 0.3s, box-shadow 0.3s;
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow-sm);
+}
+
+.idea-card:hover {
+  transform: translateY(-8px);
+  box-shadow: var(--shadow-lg);
+}
+
+.idea-image {
+  height: 200px;
+  background-size: cover;
+  background-position: center;
+  position: relative;
+}
+
+.idea-status {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  color: #fff;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.idea-content {
+  padding: 24px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ======== Animations ======== */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
   }
 
-  /* 表示時（JSでclass追加） */
-  #sidebar.show {
+  to {
+    opacity: 1;
     transform: translateY(0);
   }
-
-  /* 投稿ボタン小型化 */
-  #postBtn {
-    font-size: 14px;
-    padding: 10px 24px;
-    bottom: 16px;
-  }
-
-  /* モーダル内部の文字サイズ調整 */
-  .modal-inner {
-    width: 94%;
-    padding: 14px 16px;
-  }
-
-  .modal-inner h3 {
-    font-size: 16px;
-  }
 }
 
-/* ===============================
-   📱 モバイル対応UI
-=============================== */
+/* ======== Mobile Adaptations ======== */
 @media (max-width: 768px) {
+  header.navbar {
+    padding: 0 16px;
+    height: 60px;
+  }
 
-  /* --- 🍔 ハンバーガーメニュー --- */
+  .navbar-title {
+    font-size: 1.1rem;
+    position: absolute;
+    left: 20px;
+    transform: none;
+  }
+
   .hamburger {
     display: flex;
-    flex-direction: column;
-    justify-content: space-around;
-    width: 26px;
-    height: 20px;
-    cursor: pointer;
+    position: absolute;
+    right: 16px;
   }
 
-  .hamburger span {
-    height: 3px;
-    background: #fff;
-    border-radius: 2px;
-    transition: all 0.3s ease;
-  }
-
-  /* 開閉アニメーション */
-  .hamburger.active span:nth-child(1) {
-    transform: translateY(8px) rotate(45deg);
-  }
-  .hamburger.active span:nth-child(2) {
-    opacity: 0;
-  }
-  .hamburger.active span:nth-child(3) {
-    transform: translateY(-8px) rotate(-45deg);
-  }
-
-  /* --- 🌐 ナビゲーションメニュー --- */
-  .navbar-menu {
+  nav.navbar-menu {
     position: fixed;
-    top: 56px;
-    right: 0;
-    background: #2c3e50;
+    top: 60px;
+    left: 0;
+    width: 100%;
+    height: 0;
+    background: #fff;
     flex-direction: column;
-    width: 60%;
-    height: calc(100vh - 56px);
-    padding: 16px;
-    box-shadow: -2px 0 6px rgba(0,0,0,0.3);
-    display: none;
-    z-index: 5000;
+    padding: 0;
+    overflow: hidden;
+    transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+    z-index: 999;
+    align-items: stretch;
   }
 
-  .navbar-menu.open {
-    display: flex;
+  nav.navbar-menu.open {
+    height: auto;
+    padding: 16px;
+    border-bottom: 1px solid #e2e8f0;
   }
 
   .nav-link {
-    color: #fff;
-    font-size: 15px;
+    width: 100%;
     text-align: left;
-    padding: 10px 0;
-    border-bottom: 1px solid rgba(255,255,255,0.1);
+    padding: 14px 20px;
+    font-size: 16px;
+    border-radius: 12px;
   }
 
-  /* --- 📋 サイドバー（意見一覧） --- */
   #sidebar {
     position: fixed;
     bottom: 0;
     left: 0;
     width: 100%;
-    height: 50vh;
-    background: #fff;
-    border-top: 2px solid #ccc;
-    box-shadow: 0 -2px 6px rgba(0,0,0,0.2);
-    overflow-y: auto;
-    transform: translateY(100%);
-    transition: transform 0.3s ease;
-    z-index: 4000;
+    height: 75vh;
+    border-right: none;
+    border-top: 1px solid #e2e8f0;
+    border-radius: 24px 24px 0 0;
+    transform: translateY(calc(100% - 60px));
+    z-index: 900;
+    box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.1);
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   #sidebar.show {
     transform: translateY(0);
   }
 
-  .sidebar-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px 14px;
-    background: #f3f4f6;
-    border-bottom: 1px solid #ddd;
-    font-weight: bold;
+  .mobile-handle {
+    display: block;
   }
 
-  #closeSidebarBtn {
-    background: none;
-    border: none;
-    font-size: 14px;
-    color: #333;
+  .sidebar-header {
+    padding: 16px 20px 16px;
     cursor: pointer;
   }
 
-  /* --- ➕ 投稿ボタン --- */
-  #postBtn {
+  .page-container {
+    padding: 24px 16px;
+  }
+
+  .floating-btn {
+    bottom: 80px;
+    right: 20px;
+    padding: 12px 20px;
+    font-size: 14px;
+  }
+
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 20px;
+  }
+
+  #addIdeaBtn {
+    width: 100%;
+    justify-content: center;
+    display: flex;
+  }
+
+  /* Image handling */
+  .concept-section img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 12px;
+  }
+
+  /* Popup adjustments for mobile */
+  .leaflet-popup-content-wrapper {
+    max-height: 80vh;
+    overflow-y: auto;
+    border-radius: 16px;
+  }
+
+  .leaflet-popup-content {
+    width: auto !important;
+    margin: 12px 16px;
+    font-size: 13px;
+    line-height: 1.4;
+  }
+}
+
+/* Global image safety */
+.concept-section img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 16px;
+  box-shadow: var(--shadow-md);
+}/* ======== Modal & Overlay ======== */
+.modal {
     position: fixed;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    font-size: 15px;
-    padding: 10px 28px;
-    background-color: #007bff;
-    color: #fff;
-    border-radius: 30px;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+.modal.show {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.modal[hidden] {
+    display: none;
+}
+
+.modal-inner {
+    background: #fff;
+    width: 90%;
+    max-width: 500px;
+    padding: 32px;
+    border-radius: 24px;
+    box-shadow: var(--shadow-lg);
+    position: relative;
+    transform: translateY(20px);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.modal.show .modal-inner {
+    transform: translateY(0);
+}
+
+.modal-inner h3 {
+    margin-bottom: 20px;
+    color: var(--text-main);
+    font-size: 1.5rem;
+    font-weight: 700;
+    text-align: center;
+}
+
+.modal-inner label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: var(--text-main);
+    font-size: 0.9rem;
+}
+
+.modal-inner input,
+.modal-inner textarea,
+.modal-inner select {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1px solid #cbd5e1;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    font-family: inherit;
+    font-size: 1rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    background: #f8fafc;
+}
+
+.modal-inner input:focus,
+.modal-inner textarea:focus,
+.modal-inner select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    background: #fff;
+}
+
+.modal-inner .actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 10px;
+}
+
+.modal-inner .actions button {
+    flex: 1;
+    padding: 12px;
+    border-radius: 12px;
+    font-weight: 600;
+    cursor: pointer;
     border: none;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.25);
-    z-index: 4500;
-  }
-
-  /* --- モーダル微調整 --- */
-  .modal-inner {
-    width: 94%;
-    padding: 14px 16px;
-  }
-}
-/* ============================
-   🧩 真っ白対策（地図高さを確保）
-============================ */
-html, body {
-  height: 100%;
-  margin: 0;
-  padding: 0;
+    transition: background 0.2s;
 }
 
-/* コンテンツ・ページ・マップの高さをしっかり確保 */
-main#content,
-.page,
-#map {
-  
-  height: 100%;
-  min-height: calc(100vh - 56px); /* ヘッダー分を引く */
-  display: block;
+#cancelBtn {
+    background: #f1f5f9;
+    color: var(--text-secondary);
 }
 
-#sidebar {
-  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+#cancelBtn:hover {
+    background: #e2e8f0;
 }
 
-/* === Leaflet ポップアップの✕ボタン拡大 === */
-.leaflet-popup-close-button {
-  font-size: 22px !important;   /* ← デフォルト 16px → 22pxに拡大 */
-  width: 28px !important;       /* ← クリック範囲を広げる */
-  height: 28px !important;
-  line-height: 24px !important;
-  top: 4px !important;          /* ← 上から少し離す */
-  right: 6px !important;        /* ← 右から少し離す */
-  color: #333 !important;       /* ← 色を濃く（見やすく） */
-  text-shadow: 0 1px 2px rgba(255,255,255,0.6);
-  transition: transform 0.15s ease, color 0.2s ease;
+#submitBtn {
+    background: var(--primary);
+    color: #fff;
 }
 
-.leaflet-popup-close-button:hover {
-  transform: scale(1.2);
-  color: #000;
+#submitBtn:hover {
+    background: var(--primary-hover);
 }
 
-/* === Leaflet ポップアップの横幅・折り返し改善 === */
-.leaflet-popup-content-wrapper {
-  max-width: 420px !important;   /* ← 横幅の上限を固定（お好みで調整） */
-  width: auto !important;
-  word-wrap: break-word;         /* ← 長い単語を折り返し */
-  overflow-wrap: break-word;     /* ← モダンブラウザ用 */
+/* ======== Toast ======== */
+.toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: rgba(30, 41, 59, 0.9);
+    color: #fff;
+    padding: 12px 24px;
+    border-radius: 50px;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+    font-size: 14px;
+    font-weight: 600;
+    z-index: 3000;
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s;
+    opacity: 0;
+    pointer-events: none;
 }
 
-.leaflet-popup-content {
-  white-space: normal !important;  /* ← 改行を許可 */
-  word-break: break-word !important;
-  overflow-wrap: anywhere;
-  line-height: 1.5;
+.toast.show {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
 }
 
-/* 参考資料リンク（aタグ）の改行対応と見やすさ */
-.leaflet-popup-content a {
-  display: inline-block;           /* ← 改行可能に */
-  word-break: break-all;           /* ← 長いURLも強制折り返し */
-  color: #0078d7;
-  text-decoration: none;
-}
-.leaflet-popup-content a:hover {
-  text-decoration: underline;
-}
-
-/* =========================
-   📱 スマホ時のみ一覧を半透明に
-========================= */
-@media (max-width: 768px) {
-  #sidebar { z-index: 4000 !important; }
-  #sidebar.dimmed { z-index: 2000 !important; opacity: 0.4; }
-}
-
-
-/* 最前面に固定（親のz-indexに縛られない） */
-.leaflet-pane.leaflet-popup-pane {
-  position: fixed !important;     /* ← ビューポート基準に脱出 */
-  inset: 0;                       /* iOSでのズレ防止のため基準化 */
-  z-index: 12000 !important;      /* ← サイドバー(4000/2000)より上 */
-  pointer-events: auto !important;
-}
-
-/* ===============================
-   📱 モバイル用：オーバーレイポップ（Leafletを使わない）
-================================ */
+/* ======== Overlay (Details) ======== */
 .overlay {
-  position: fixed;
-  inset: 0;
-  display: none;                 /* .show で表示 */
-  align-items: center;
-  justify-content: center;
-  background: rgba(0,0,0,0.35);
-  z-index: 13000;                /* どのUIよりも前面 */
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.3);
+    z-index: 1500;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+    display: flex;
+    justify-content: flex-end;
 }
-.overlay.show { display: flex; }
+
+.overlay.show {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.overlay[hidden] {
+    display: none;
+}
 
 .overlay-inner {
-  position: relative;
-  width: 92%;
-  max-width: 480px;
-  max-height: 85vh;
-  overflow: auto;
-  background: #fff;
-  border-radius: 12px;
-  padding: 12px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+    width: 100%;
+    max-width: 600px;
+    background: #fff;
+    height: 100%;
+    padding: 0;
+    box-shadow: var(--shadow-lg);
+    transform: translateX(100%);
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    display: flex;
+    flex-direction: column;
+}
+
+.overlay.show .overlay-inner {
+    transform: translateX(0);
 }
 
 .overlay-close {
-  position: absolute;
-  top: 6px;
-  right: 8px;
-  font-size: 20px;
-  background: transparent;
-  border: none;
-  cursor: pointer;
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: rgba(0, 0, 0, 0.05);
+    border: none;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    color: var(--text-secondary);
+    transition: background 0.2s;
+    z-index: 10;
 }
 
-/* モバイル時に一覧が重ならないよう操作を遮断 */
+.overlay-close:hover {
+    background: rgba(0, 0, 0, 0.1);
+}
+
+.overlay-content {
+    padding: 40px;
+    overflow-y: auto;
+    height: 100%;
+}
+
 @media (max-width: 768px) {
-  #sidebar.dimmed {
-    opacity: 0;
-    z-index: 2000 !important;
-    pointer-events: none;     /* ← これが重要（タップをオーバーレイへ通す） */
-  }
-}
+    .modal-inner {
+        width: 95%;
+        padding: 24px;
+    }
 
-.ai-box {
-  position: relative;
-  z-index: 2;
+    .overlay-inner {
+        width: 100%;
+        max-width: 100%;
+    }
 }
-.ai-box .heart-btn {
-  pointer-events: auto;
-  z-index: 3;
-  color: #999;
-  transition: color 0.2s ease, transform 0.2s ease;
-}
-.ai-box .heart-btn.liked {
-  color: #ff4b8b;
-}
-.ai-box .heart-btn:hover {
-  transform: scale(1.15);
-  color: #ff4b8b;
-}
-
-/* === 📚 参考資料リストの整列補正 === */
-.leaflet-popup-content ul {
-  list-style-type: disc !important;       /* 黒丸マーカーを強制表示 */
-  list-style-position: inside !important; /* ← outside → inside に変更 */
-  padding-left: 0 !important;             /* ← 余計な左余白を消す */
-
-}
-
-.leaflet-popup-content li {
-  margin-bottom: 2px;
-  line-height: 1.5;
-  word-break: break-all;
-}
-
-.leaflet-popup-content li a {
-  display: inline !important; /* ← inline-blockを打ち消す */
-  word-break: break-all;
-  overflow-wrap: anywhere;
-}
-

@@ -15,7 +15,7 @@ function closeModal() {
   modal.hidden = true;
 
   document.getElementById('displayName').value = '';
-  document.getElementById('content').value = '';
+  document.getElementById('postContent').value = '';
 
   const categorySelect = document.getElementById('category');
   if (categorySelect) categorySelect.value = '';
@@ -41,28 +41,31 @@ export function openModal(latlng, supabase, map, regionInfo = null) {
   if (!regionLabel) {
     regionLabel = document.createElement('div');
     regionLabel.id = 'regionLabel';
-    regionLabel.style.fontSize = '13px';
-    regionLabel.style.color = '#555';
-    regionLabel.style.marginBottom = '6px';
+    regionLabel.className = 'popup-region';
     modal.querySelector('.modal-inner').insertBefore(regionLabel, modal.querySelector('label'));
   }
 
   // --- 初期状態 ---
   let selectedLatLng = latlng || null;
   let hasRegion = !!selectedLatLng;
-  regionLabel.textContent = hasRegion
-    ? `投稿先：地図上の地点 (${selectedLatLng.lat.toFixed(4)}, ${selectedLatLng.lng.toFixed(4)})`
-    : '投稿先：未指定（地域を選択してください）';
+  regionLabel.innerHTML = hasRegion
+    ? `<i class="fa-solid fa-location-dot"></i> ${selectedLatLng.lat.toFixed(4)}, ${selectedLatLng.lng.toFixed(4)}`
+    : `<i class="fa-solid fa-location-dot"></i> 地域指定なし`;
 
   // --- 地域選択ボタン生成 ---
   let regionButtons = document.getElementById('regionButtons');
   if (!regionButtons) {
     regionButtons = document.createElement('div');
     regionButtons.id = 'regionButtons';
-    regionButtons.style.marginBottom = '10px';
+    regionButtons.className = 'actions';
+    regionButtons.style.marginBottom = '20px';
     regionButtons.innerHTML = `
-      <button id="noRegionBtn" style="margin-right:6px;">地域指定なし</button>
-      <button id="chooseRegionBtn">地図上で指定</button>
+      <button id="noRegionBtn" class="nav-link" style="color:var(--secondary); background:rgba(0,0,0,0.05); flex:1; justify-content:center;">
+        <i class="fa-solid fa-ban"></i> 指定なし
+      </button>
+      <button id="chooseRegionBtn" class="nav-link active" style="flex:1; justify-content:center;">
+        <i class="fa-solid fa-crosshairs"></i> 地図から選択
+      </button>
     `;
     modal.querySelector('.modal-inner').insertBefore(regionButtons, regionLabel);
   }
@@ -71,44 +74,42 @@ export function openModal(latlng, supabase, map, regionInfo = null) {
   document.getElementById('noRegionBtn').onclick = () => {
     hasRegion = false;
     selectedLatLng = null;
-    regionLabel.textContent = '投稿先：地域指定なし';
+    regionLabel.innerHTML = '<i class="fa-solid fa-location-dot"></i> 地域指定なし';
     showToast('地域指定なしで投稿します');
   };
 
-  // --- 🧭 地図上で指定を選択（字情報対応版） ---
-  document.getElementById('chooseRegionBtn').onclick = () => {
-    showToast('地図をクリックして地点を選択してください');
+  // --- 地図から選択ボタンの制御 ---
+  const chooseRegionBtn = document.getElementById('chooseRegionBtn');
+  if (!map) {
+    chooseRegionBtn.style.display = 'none';
+  } else {
+    chooseRegionBtn.style.display = 'flex';
+    chooseRegionBtn.onclick = () => {
+      showToast('地図をクリックして地点を選択してください');
+      modal.classList.remove('show');
 
-    // モーダルを一時的に閉じる
-    modal.classList.remove('show');
-    modal.hidden = true;
+      const clickHandler = e => {
+        const selectedLatLng = e.latlng;
+        map.off('click', clickHandler);
 
-    // 一度だけクリックイベント待機
-    const clickHandler = e => {
-      const selectedLatLng = e.latlng;
-      map.off('click', clickHandler);
+        const regionInfo = getRegionInfo(selectedLatLng);
+        modal.classList.add('show');
 
-      const regionInfo = getRegionInfo(selectedLatLng);
-      console.log("📍 選択された字情報:", regionInfo);
+        if (regionInfo && (regionInfo.chome || regionInfo.ward)) {
+          const parts = [regionInfo.city, regionInfo.ward, regionInfo.chome].filter(Boolean);
+          regionLabel.innerHTML = `<i class="fa-solid fa-location-dot"></i> ${parts.join(' ')}`;
+        } else {
+          regionLabel.innerHTML = `<i class="fa-solid fa-location-dot"></i> ${selectedLatLng.lat.toFixed(4)}, ${selectedLatLng.lng.toFixed(4)}`;
+        }
 
-      modal.classList.add('show');
-      modal.hidden = false;
+        window.selectedLatLng = selectedLatLng;
+        window.selectedRegionInfo = regionInfo;
+        showToast('地点を選択しました');
+      };
 
-      if (regionInfo && (regionInfo.chome || regionInfo.ward)) {
-        const parts = [regionInfo.city, regionInfo.ward, regionInfo.chome].filter(Boolean);
-        regionLabel.textContent = `投稿先：${parts.join(' ')}`;
-      } else {
-        regionLabel.textContent = `投稿先：(${selectedLatLng.lat.toFixed(4)}, ${selectedLatLng.lng.toFixed(4)})`;
-      }
-
-      window.selectedLatLng = selectedLatLng;
-      window.selectedRegionInfo = regionInfo;
-
-      showToast('地点を選択しました');
+      map.on('click', clickHandler);
     };
-
-    map.on('click', clickHandler);
-  };
+  }
 
   // --- 年代・性別入力（初回のみ） ---
   let ageSelect = document.getElementById('age_group');
@@ -124,7 +125,6 @@ export function openModal(latlng, supabase, map, regionInfo = null) {
     ageSelect = document.createElement('select');
     ageSelect.id = 'age_group';
     ageSelect.required = true;
-    ageSelect.style.marginBottom = '8px';
     const ageOptions = [
       '', '10代未満', '10代', '20代', '30代', '40代', '50代', '60代', '70代以上', '未回答'
     ];
@@ -142,7 +142,6 @@ export function openModal(latlng, supabase, map, regionInfo = null) {
     genderSelect = document.createElement('select');
     genderSelect.id = 'gender';
     genderSelect.required = true;
-    genderSelect.style.marginBottom = '8px';
     const genderOptions = ['', '男性', '女性', 'その他', '未回答'];
     genderOptions.forEach(g => {
       const opt = document.createElement('option');
@@ -167,7 +166,6 @@ export function openModal(latlng, supabase, map, regionInfo = null) {
     categorySelect = document.createElement('select');
     categorySelect.id = 'category';
     categorySelect.required = true;
-    categorySelect.style.marginBottom = '8px';
 
     const categories = [
       '地域経済', '交通・道路', '子育て・教育・高齢者福祉',
@@ -177,7 +175,7 @@ export function openModal(latlng, supabase, map, regionInfo = null) {
 
     const placeholder = document.createElement('option');
     placeholder.value = '';
-    placeholder.textContent = '意見のカテゴリを選択してください';
+    placeholder.textContent = 'カテゴリを選択してください';
     categorySelect.appendChild(placeholder);
 
     categories.forEach(c => {

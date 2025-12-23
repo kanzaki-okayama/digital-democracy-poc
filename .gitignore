@@ -1,0 +1,23 @@
+# OS / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Python / Dev Scripts
+__pycache__/
+*.pyc
+*.py
+venv/
+env/
+
+# Large binaries / Artifacts
+*.zip
+
+# Documentation / Notes (Keep README.md)
+TODO.md
+*.log
+implementation_report*.md
+
+# Node
+node_modules/

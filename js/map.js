@@ -21,14 +21,10 @@ export async function initMap(supabase) {
   const posts = await fetchPosts(supabase);
   posts.forEach(p => addMarker(map, p, supabase));
 
-  let isPostMode = false;
-  const postBtn = document.getElementById('postBtn');
-  if (postBtn) {
-    postBtn.addEventListener('click', () => {
-      console.log('🟢 投稿ボタンがクリックされました');
-      openModal(null, supabase, map, null);
-    });
-  }
+  // --- 📊 凡例は削除（ユーザー要望により） ---
+  // const legend = L.control({ position: 'bottomright' });
+  // legend.onAdd = ... (removed)
+  // legend.addTo(map);
 
   cityLayer = await loadLayer(map, supabase, 'data/oka_city.geojson', 'N03_004', '#0055cc');
   wardLayer = await loadLayer(map, supabase, 'data/oka_ward.geojson', 'N03_005', '#009966');
@@ -71,7 +67,7 @@ export async function initMap(supabase) {
   const sidebar = document.getElementById('sidebar');
   if (sidebar) sidebar.classList.remove('dimmed');
 
-  
+
   return map;
 }
 
@@ -234,33 +230,33 @@ export function addMarker(map, post, supabase) {
     if (existing?.ai_answer) {
       aiAnswerHTML += `<p style="margin-top:6px; color:#333; white-space:pre-line;">${escapeHtml(existing.ai_answer)}</p>`;
 
-    if (existing.sources) {
-      try {
-        const parsed = JSON.parse(existing.sources);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          aiAnswerHTML += `
+      if (existing.sources) {
+        try {
+          const parsed = JSON.parse(existing.sources);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            aiAnswerHTML += `
             <div style="margin-top:8px; font-size:12px; color:#555;">
               <b>📚 参考資料（関連が高い順）</b>
               <ul style="margin:4px 0 0 16px; padding:0; list-style-type:disc;">
           `;
-          parsed.forEach((s, i) => {
-            const title = escapeHtml(s.title || `資料${i + 1}`);
-            const url = escapeHtml(s.url || "#");
-            aiAnswerHTML += `
+            parsed.forEach((s, i) => {
+              const title = escapeHtml(s.title || `資料${i + 1}`);
+              const url = escapeHtml(s.url || "#");
+              aiAnswerHTML += `
               <li style="margin-bottom:2px;">
                 <a href="${url}" target="_blank" rel="noopener noreferrer">${title}</a>
               </li>
             `;
-          });
-          aiAnswerHTML += `
+            });
+            aiAnswerHTML += `
               </ul>
             </div>
           `;
+          }
+        } catch (err) {
+          console.error("📚 参考資料JSONパース失敗:", err);
         }
-      } catch (err) {
-        console.error("📚 参考資料JSONパース失敗:", err);
       }
-    }
     } else {
       aiAnswerHTML = '⏳ AIが回答を生成中です...';
     }
@@ -374,10 +370,10 @@ export function addMarker(map, post, supabase) {
               post_id: post.id,
               query: `
           【地域】${[
-                post.city_name || "岡山市",
-                post.ward_name || "",
-                post.chome_name || ""
-              ].filter(Boolean).join(" ")}
+                  post.city_name || "岡山市",
+                  post.ward_name || "",
+                  post.chome_name || ""
+                ].filter(Boolean).join(" ")}
           【質問】${post.content}
             `.trim(),
             }),
@@ -423,57 +419,57 @@ export function addMarker(map, post, supabase) {
       await generateAIAnswer(false);
     }
 
-// --- ✅ 再回答ボタン（AI再生成） ---
-regenBtn.addEventListener("click", async (e) => {
-  e.preventDefault();
-  regenBtn.disabled = true;
-  regenBtn.textContent = "再回答中...";
+    // --- ✅ 再回答ボタン（AI再生成） ---
+    regenBtn.addEventListener("click", async (e) => {
+      e.preventDefault();
+      regenBtn.disabled = true;
+      regenBtn.textContent = "再回答中...";
 
-  aiText.textContent = "🧠 再回答を生成中...";
+      aiText.textContent = "🧠 再回答を生成中...";
 
-  try {
-    const res = await fetch(
-      "https://eispzocmbopasgcvgxmi.functions.supabase.co/ai-rag-answer2",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          post_id: post.id,            // ✅ 正確なpost_id
-          query: post.content,         // ✅ 投稿本文を送信
-          city_name: post.city_name,   // ✅ 地域情報も送る
-          ward_name: post.ward_name,
-          chome_name: post.chome_name,
-        }),
+      try {
+        const res = await fetch(
+          "https://eispzocmbopasgcvgxmi.functions.supabase.co/ai-rag-answer2",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              post_id: post.id,            // ✅ 正確なpost_id
+              query: post.content,         // ✅ 投稿本文を送信
+              city_name: post.city_name,   // ✅ 地域情報も送る
+              ward_name: post.ward_name,
+              chome_name: post.chome_name,
+            }),
+          }
+        );
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "AI回答生成に失敗しました");
+
+        const answer = data.answer || "回答を取得できませんでした。";
+        const sources = Array.isArray(data.sources) ? data.sources : [];
+
+        // ✅ 表示更新
+        let html = `<p style="margin-top:6px; color:#333; white-space:pre-line;">${escapeHtml(answer)}</p>`;
+        if (sources.length > 0) {
+          html += `<div style="margin-top:8px; font-size:12px; color:#555;"><b>📚 参考資料</b><br>`;
+          sources.forEach((s, i) => {
+            const title = escapeHtml(s.title || `資料${i + 1}`);
+            const url = escapeHtml(s.url || "#");
+            html += `・<a href="${url}" target="_blank" rel="noopener noreferrer">${title}</a><br>`;
+          });
+          html += `</div>`;
+        }
+        aiText.innerHTML = html;
+
+      } catch (err) {
+        console.error("❌ 再回答処理エラー:", err);
+        aiText.innerHTML = `<span style="color:red;">AI回答の生成に失敗しました。</span>`;
+      } finally {
+        regenBtn.textContent = "🔁 再回答";
+        regenBtn.disabled = false;
       }
-    );
-
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "AI回答生成に失敗しました");
-
-    const answer = data.answer || "回答を取得できませんでした。";
-    const sources = Array.isArray(data.sources) ? data.sources : [];
-
-    // ✅ 表示更新
-    let html = `<p style="margin-top:6px; color:#333; white-space:pre-line;">${escapeHtml(answer)}</p>`;
-    if (sources.length > 0) {
-      html += `<div style="margin-top:8px; font-size:12px; color:#555;"><b>📚 参考資料</b><br>`;
-      sources.forEach((s, i) => {
-        const title = escapeHtml(s.title || `資料${i + 1}`);
-        const url = escapeHtml(s.url || "#");
-        html += `・<a href="${url}" target="_blank" rel="noopener noreferrer">${title}</a><br>`;
-      });
-      html += `</div>`;
-    }
-    aiText.innerHTML = html;
-
-  } catch (err) {
-    console.error("❌ 再回答処理エラー:", err);
-    aiText.innerHTML = `<span style="color:red;">AI回答の生成に失敗しました。</span>`;
-  } finally {
-    regenBtn.textContent = "🔁 再回答";
-    regenBtn.disabled = false;
-  }
-});
+    });
 
     // ✅ --- 返信送信（変更なし） ---
     const replyForm = popup.getElement().querySelector(".reply-form");

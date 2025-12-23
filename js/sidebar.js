@@ -5,18 +5,20 @@ import { getCategoryColor, escapeHtml } from './map.js';
 export async function initSidebar(supabase, posts, map) {
   console.log("✅ initSidebar 起動");
 
-  // 既存のsidebarがあれば削除（SPA対応）
-  const existing = document.getElementById('sidebar');
-  if (existing) existing.remove();
+  // --- サイドバー取得/生成 ---
+  let sidebar = document.getElementById('sidebar');
+  if (!sidebar) {
+    sidebar = document.createElement('div');
+    sidebar.id = 'sidebar';
+    document.body.appendChild(sidebar);
+  }
 
-  // --- サイドバー生成 ---
-  const sidebar = document.createElement('div');
-  sidebar.id = 'sidebar';
   sidebar.innerHTML = `
+    <div class="mobile-handle"></div>
     <div class="sidebar-header">
-      <div style="font-weight:bold; font-size:14px;">意見一覧</div>
+      <div class="title">意見一覧</div>
       
-      <div style="margin-top:6px;">
+      <div style="display: flex; flex-direction: column; gap: 8px;">
         <select id="category-filter">
           <option value="all">すべてのカテゴリ</option>
           <option value="地域経済">地域経済</option>
@@ -29,9 +31,7 @@ export async function initSidebar(supabase, posts, map) {
           <option value="行政・政治改革">行政・政治改革</option>
           <option value="その他">その他</option>
         </select>
-      </div>
 
-      <div style="margin-top:6px;">
         <select id="sort-select">
           <option value="newest">新しい順</option>
           <option value="likes">賛同が多い順</option>
@@ -40,9 +40,8 @@ export async function initSidebar(supabase, posts, map) {
       </div>
     </div>
 
-    <div id="post-list" style="margin-top:8px;"></div>
+    <div id="post-list" class="post-list"></div>
   `;
-  document.body.appendChild(sidebar);
 
   const postList = sidebar.querySelector('#post-list');
   const sortSelect = sidebar.querySelector('#sort-select');
@@ -63,55 +62,136 @@ export async function initSidebar(supabase, posts, map) {
   // --- 投稿リスト描画関数 ---
   function renderPostList(list) {
     postList.innerHTML = '';
+    postList.className = 'post-list';
+
     if (!list || list.length === 0) {
-      postList.innerHTML = `<p style="color:#777; text-align:center;">投稿がありません</p>`;
+      postList.innerHTML = `<p style="color:var(--secondary); text-align:center; padding-top: 40px; font-size: 14px;">投稿がありません</p>`;
       return;
     }
 
     list.forEach(post => {
       const color = getCategoryColor(post.category);
       const item = document.createElement('div');
-      item.className = 'post-item';
-      item.style.cssText = `
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        border-bottom: 1px solid #ddd;
-        padding: 8px 4px;
-        cursor: pointer;
-      `;
+      item.className = 'sidebar-post';
+      item.style.setProperty('--category-color', color);
 
-      const left = document.createElement('div');
-      left.style.flex = '1';
-      left.innerHTML = `
-        <div style="display:flex; align-items:center; font-size:12px; font-weight:bold; margin-bottom:2px;">
-          <div style="width:10px; height:10px; border-radius:50%; background:${color}; margin-right:6px;"></div>
-          ${escapeHtml(post.category || '未分類')}
+      item.innerHTML = `
+        <div class="sidebar-post-header">
+          <div class="sidebar-post-name">
+            ${escapeHtml(post.display_name || '名無しさん')}
+          </div>
+          <div class="sidebar-post-date">${formatDate(post.created_at)}</div>
         </div>
-        <div style="font-size:12px; color:#333; line-height:1.3;">
-          ${escapeHtml(post.content.slice(0, 80))}${post.content.length > 80 ? '…' : ''}
+        
+        <div class="sidebar-post-info" style="font-size:12px; color:var(--text-secondary); margin-bottom: 8px; display:flex; gap:8px;">
+          <span><i class="fa-solid fa-user"></i> ${escapeHtml(post.age_group || '年代不明')}</span>
+          <span><i class="fa-solid fa-venus-mars"></i> ${escapeHtml(post.gender || '性別不明')}</span>
+          <span style="margin-left:auto; color:var(--primary); font-weight:700;">
+            ${escapeHtml(post.category || '未分類')}
+          </span>
+        </div>
+
+        <div class="sidebar-post-content" style="-webkit-line-clamp: 4; line-clamp: 4;">
+          ${escapeHtml(post.content || '(本文なし)')}
+        </div>
+
+        <div style="display:flex; justify-content: flex-start; align-items: center; margin-top: auto; padding-top: 12px; gap: 16px;">
+          <div style="display:flex; gap:6px; font-size:13px; color:var(--text-secondary); background:rgba(0,0,0,0.03); padding:4px 10px; border-radius:20px;">
+            <i class="fa-regular fa-heart" style="color:#e63946;"></i> 
+            <span style="font-weight:700;">${post.likes || post.likes_count || 0}</span>
+          </div>
+          <div style="display:flex; gap:6px; font-size:13px; color:var(--text-secondary); background:rgba(0,0,0,0.03); padding:4px 10px; border-radius:20px;">
+            <i class="fa-regular fa-comment" style="color:var(--primary);"></i> 
+            <span style="font-weight:700;">${post.comments_count || 0}</span>
+          </div>
         </div>
       `;
-
-      const right = document.createElement('div');
-      right.style.cssText = `text-align:right; font-size:11px; color:#666; line-height:1.3; min-width:50px;`;
-      right.innerHTML = `<div>❤️ ${post.likes || 0}</div><div>💬 ${post.comments_count || 0}</div>`;
-
-      item.appendChild(left);
-      item.appendChild(right);
 
       // マップ上で該当ピンにズーム＆ポップアップ
-      item.addEventListener('click', () => {
-        map.setView([post.lat, post.lng], 15);
+      item.addEventListener('click', (e) => {
+        // モバイルでカードをクリックした際に、サイドバーを閉じてマップを見やすくする配慮
+        if (window.innerWidth <= 768) {
+          sidebar.classList.remove('show');
+          document.body.classList.remove('sidebar-open');
+        }
+
+        const offsetLat = 0.002;
+        map.setView([post.lat - offsetLat, post.lng], 15, { animate: true });
         map.eachLayer(layer => {
           if (layer.getLatLng && layer.getLatLng().lat === post.lat && layer.getLatLng().lng === post.lng) {
-            layer.openPopup();
+            setTimeout(() => layer.openPopup(), 400);
           }
         });
       });
 
       postList.appendChild(item);
     });
+  }
+
+  // --- モバイル用トグル/スワイプ設設定 ---
+  const header = sidebar.querySelector('.sidebar-header');
+
+  let startY = 0;
+  let isDragging = false;
+
+  header.addEventListener('mousedown', (e) => {
+    if (window.innerWidth > 768) return;
+    startY = e.clientY;
+    isDragging = true;
+  });
+
+  document.addEventListener('mousemove', (e) => {
+    if (!isDragging) return;
+    const diff = startY - e.clientY;
+    if (diff > 50) {
+      sidebar.classList.add('show');
+      document.body.classList.add('sidebar-open');
+      isDragging = false;
+    } else if (diff < -50) {
+      sidebar.classList.remove('show');
+      document.body.classList.remove('sidebar-open');
+      isDragging = false;
+    }
+  });
+
+  document.addEventListener('mouseup', () => { isDragging = false; });
+
+  // Touch support
+  header.addEventListener('touchstart', (e) => {
+    if (window.innerWidth > 768) return;
+    startY = e.touches[0].clientY;
+    isDragging = true;
+  }, { passive: true });
+
+  document.addEventListener('touchmove', (e) => {
+    if (!isDragging) return;
+    const diff = startY - e.touches[0].clientY;
+    if (diff > 50) {
+      sidebar.classList.add('show');
+      document.body.classList.add('sidebar-open');
+      isDragging = false;
+    } else if (diff < -50) {
+      sidebar.classList.remove('show');
+      document.body.classList.remove('sidebar-open');
+      isDragging = false;
+    }
+  }, { passive: true });
+
+  header.addEventListener('click', () => {
+    if (window.innerWidth <= 768) {
+      const isShow = sidebar.classList.toggle('show');
+      document.body.classList.toggle('sidebar-open', isShow);
+    }
+  });
+
+  function formatDate(ts) {
+    if (!ts) return '';
+    const d = new Date(ts);
+    const now = new Date();
+    const diff = now - d;
+
+    // 24時間以内なら「〜時間前」的な感じにしたいが、シンプルに
+    return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
   }
 
   // --- フィルター＆ソート処理 ---
