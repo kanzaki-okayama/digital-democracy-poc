@@ -89,7 +89,18 @@ async function showPage(page) {
     `;
     return;
   }
-
+  // ===============================
+  // 📊 議論の状況
+  // ===============================
+  if (page === 'discussion') {
+    content.innerHTML = `
+      <div class="page-container glass-bg" style="padding:0; height: calc(100vh - 64px); max-width: none;">
+        <iframe src="okayama_democracy_dashboard_v1/index.html" 
+                style="width: 100%; height: 100%; border: none; display: block;"></iframe>
+      </div>
+    `;
+    return;
+  }
   // ===============================
   // 💡 課題解決アイデア
   // ===============================
