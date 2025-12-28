@@ -449,21 +449,44 @@
             const opIds = graphData.edges.filter(e => e.target === projectId && e.type === 'TARGETS').map(e => e.source);
             let opinions = graphData.nodes.filter(n => opIds.includes(n.id) && n.type === 'Opinion');
 
+            function getCategory(role) {
+                if (!role) return 'authority';
+                if (role.includes('議員') || role.includes('委員') || role.includes('議長')) return 'councilor';
+                return 'authority';
+            }
+
+            const councilorOps = opinions.filter(op => getCategory(op.role) === 'councilor');
+            const authorityOps = opinions.filter(op => getCategory(op.role) === 'authority');
+
+            let filteredOpinions = opinions;
             let contextText = "すべて";
             if (STATE.detailFilter === 'councilor') {
-                opinions = opinions.filter(op => (op.role || "").includes('議員') || (op.role || "").includes('委員'));
+                filteredOpinions = councilorOps;
                 contextText = "議員の視点";
             } else if (STATE.detailFilter === 'authority') {
-                opinions = opinions.filter(op => !((op.role || "").includes('議員') || (op.role || "").includes('委員')));
+                filteredOpinions = authorityOps;
                 contextText = "行政の視点";
             }
 
-            document.getElementById('detail-count').innerText = opinions.length;
+            document.getElementById('detail-count').innerText = filteredOpinions.length;
             document.getElementById('chart-context-label').innerText = contextText;
-            renderDynamicValueChart(opinions, pNode);
+
+            // Render chart with comparison data if needed
+            const datasets = [];
+            if (STATE.detailFilter === 'all') {
+                datasets.push({ label: '全体', ops: opinions, color: '#3b82f6', fill: true });
+            } else if (STATE.detailFilter === 'councilor') {
+                datasets.push({ label: '議員', ops: councilorOps, color: '#3b82f6', fill: true });
+                datasets.push({ label: '行政 (比較)', ops: authorityOps, color: '#94a3b8', fill: false, dashed: true });
+            } else if (STATE.detailFilter === 'authority') {
+                datasets.push({ label: '行政', ops: authorityOps, color: '#22c55e', fill: true });
+                datasets.push({ label: '議員 (比較)', ops: councilorOps, color: '#94a3b8', fill: false, dashed: true });
+            }
+
+            renderDynamicValueChart(datasets, pNode);
             const opList = document.getElementById('detail-opinions');
             opList.innerHTML = '';
-            opinions.forEach(op => {
+            filteredOpinions.forEach(op => {
                 const div = document.createElement('div');
                 div.className = `bg-slate-800 p-4 rounded border-l-4 border-slate-600 cursor-pointer hover:bg-slate-750 transition-all`;
                 div.onclick = () => selectOpinionForChart(op, div);
@@ -489,7 +512,17 @@
             document.querySelectorAll('#detail-opinions > div').forEach(el => el.classList.remove('ring-2', 'ring-blue-500', 'bg-slate-700'));
             cardElement.classList.add('bg-slate-700', 'ring-2', 'ring-blue-500');
             const pNode = graphData.nodes.find(n => n.id === STATE.selectedProject);
-            renderDynamicValueChart([op], pNode);
+
+            // Show single opinion with aggregate as comparison
+            const opIds = graphData.edges.filter(e => e.target === pNode.id && e.type === 'TARGETS').map(e => e.source);
+            const allOpinions = graphData.nodes.filter(n => opIds.includes(n.id) && n.type === 'Opinion');
+
+            const datasets = [
+                { label: '選択した発言', ops: [op], color: '#3b82f6', fill: true },
+                { label: 'プロジェクト全体', ops: allOpinions, color: '#94a3b8', fill: false, dashed: true }
+            ];
+
+            renderDynamicValueChart(datasets, pNode);
             document.getElementById('chart-context-label').innerText = "選択した発言";
         }
 
@@ -508,29 +541,41 @@
             }
         }
 
-        function renderDynamicValueChart(opinions, projectNode) {
+        function renderDynamicValueChart(datasetsInfo, projectNode) {
             const ctx = document.getElementById('valueChart').getContext('2d');
             if (valueChartInstance) valueChartInstance.destroy();
-            const sums = {};
-            VALUE_AXES_DEF.forEach(a => sums[a.id] = 0);
-            let count = 0;
-            opinions.forEach(op => { if (op.values) { count++; Object.keys(op.values).forEach(k => { if (sums[k] !== undefined) sums[k] += op.values[k]; }); } });
-            const data = VALUE_AXES_DEF.map(a => count > 0 ? (sums[a.id] / count) : 0);
+
+            const chartDatasets = datasetsInfo.map(ds => {
+                const sums = {};
+                VALUE_AXES_DEF.forEach(a => sums[a.id] = 0);
+                let count = 0;
+                ds.ops.forEach(op => {
+                    if (op.values) {
+                        count++;
+                        Object.keys(op.values).forEach(k => {
+                            if (sums[k] !== undefined) sums[k] += op.values[k];
+                        });
+                    }
+                });
+                const data = VALUE_AXES_DEF.map(a => count > 0 ? (sums[a.id] / count) : 0);
+
+                return {
+                    label: ds.label,
+                    data: data,
+                    backgroundColor: ds.fill ? (ds.color + '33') : 'transparent', // 33 is ~0.2 opacity
+                    borderColor: ds.color,
+                    borderWidth: ds.dashed ? 1 : 2,
+                    borderDash: ds.dashed ? [5, 5] : [],
+                    pointRadius: ds.dashed ? 0 : 3,
+                    pointBackgroundColor: ds.color,
+                };
+            });
+
             valueChartInstance = new Chart(ctx, {
                 type: 'radar',
                 data: {
                     labels: VALUE_AXES_DEF.map(a => a.label),
-                    datasets: [{
-                        label: 'Score',
-                        data: data,
-                        backgroundColor: 'rgba(59, 130, 246, 0.2)',
-                        borderColor: '#3b82f6',
-                        borderWidth: 2,
-                        pointBackgroundColor: '#fff',
-                        pointBorderColor: '#3b82f6',
-                        pointHoverBackgroundColor: '#fff',
-                        pointHoverBorderColor: '#3b82f6'
-                    }]
+                    datasets: chartDatasets
                 },
                 options: {
                     responsive: true,
@@ -545,18 +590,32 @@
                                 color: (ctx) => {
                                     return VALUE_AXES_DEF[ctx.index] ? VALUE_AXES_DEF[ctx.index].color : '#fff';
                                 },
-                                font: { size: 12, weight: 'bold' }
+                                font: { size: 10, weight: 'bold' }
                             },
                             ticks: {
-                                display: true,
-                                stepSize: 2,
-                                color: '#475569',
-                                backdropColor: 'transparent',
-                                font: { size: 8 }
+                                display: false, // Cleaner look for comparison
+                                stepSize: 2
                             }
                         }
                     },
-                    plugins: { legend: { display: false } }
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'bottom',
+                            labels: {
+                                color: '#94a3b8',
+                                boxWidth: 10,
+                                font: { size: 10 }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function (context) {
+                                    return context.dataset.label + ': ' + context.raw.toFixed(2);
+                                }
+                            }
+                        }
+                    }
                 }
             });
         }
