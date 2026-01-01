@@ -432,13 +432,14 @@
             const activeEl = document.getElementById(`flow-p-${projectId}`);
             if (activeEl) activeEl.classList.add('active', 'border-blue-500');
 
+            // プレースホルダーを非表示にし、コンテンツを表示（モバイル・デスクトップ共通）
+            document.getElementById('flow-detail-placeholder').classList.add('hidden');
+            document.getElementById('flow-detail-content').classList.remove('hidden');
+
             if (window.innerWidth < 768) {
                 document.getElementById('flow-list-pane').classList.add('hidden');
                 document.getElementById('flow-detail-pane').classList.remove('hidden', 'md:flex');
                 document.getElementById('flow-detail-pane').classList.add('flex');
-            } else {
-                document.getElementById('flow-detail-placeholder').classList.add('hidden');
-                document.getElementById('flow-detail-content').classList.remove('hidden');
             }
             renderDetailContent(projectId);
         }
