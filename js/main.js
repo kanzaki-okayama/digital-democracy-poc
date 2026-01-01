@@ -11,7 +11,11 @@ let mapInstance = null;
 // ---------------------------
 // 📄 ページ切り替え処理
 // ---------------------------
+let currentPageLoadId = 0;
+
 async function showPage(page) {
+  const loadId = ++currentPageLoadId;
+
   // --- Cleanup for SPA navigation ---
   if (cleanupSidebar) {
     cleanupSidebar();
@@ -23,6 +27,7 @@ async function showPage(page) {
     link.classList.toggle('active', link.dataset.page === page);
   });
 
+  const content = document.getElementById('content');
   content.innerHTML = '';
   document.body.classList.remove('sidebar-open');
   window.scrollTo(0, 0);
@@ -41,26 +46,26 @@ async function showPage(page) {
     `;
     content.appendChild(mapPage);
 
-    // --- 投稿ボタンの紐付け (地図読み込み前でも押せるようにする) ---
+    // --- 投稿ボタンの紐付け ---
     const postBtn = document.getElementById('postBtn');
     if (postBtn) {
       postBtn.onclick = () => {
-        // mapInstanceが未定義の場合はnullが渡る（ui.js側でハンドリング済）
         openModal(null, supabase, mapInstance, null);
       };
     }
 
     // --- 地図描画（DOM安定を待つ）
     await new Promise(res => setTimeout(res, 100));
+    if (loadId !== currentPageLoadId) return;
 
     // --- 地図初期化 ---
     try {
       mapInstance = await initMap(supabase);
+      if (loadId !== currentPageLoadId) return;
       mapPage.classList.add('ready');
       mapInstance.setView([34.66175, 133.9346], 11);
     } catch (err) {
       console.error('❌ 地図初期化エラー:', err);
-      // エラー時でもボタンは動作する
     }
 
     // --- 投稿一覧読込＋サイドバー初期化 ---
@@ -69,10 +74,17 @@ async function showPage(page) {
       .select('*')
       .order('created_at', { ascending: false });
 
+    if (loadId !== currentPageLoadId) return;
+
     if (error) {
       console.error('⚠️ 投稿取得エラー:', error);
     } else {
-      cleanupSidebar = await initSidebar(supabase, posts, mapInstance);
+      const result = await initSidebar(supabase, posts, mapInstance);
+      if (loadId !== currentPageLoadId) {
+        if (typeof result === 'function') result();
+        return;
+      }
+      cleanupSidebar = result;
     }
     return;
   }
@@ -225,7 +237,7 @@ async function loadDocumentsList() {
     }
   }
 
-  // 🔹 タイトル重複を除外（必要なら）
+  // 🔹 タイトル重複を除外
   const uniqueTitles = [...new Set(allDocs.map(d => d.title))];
 
   // ✅ 件数表示を更新

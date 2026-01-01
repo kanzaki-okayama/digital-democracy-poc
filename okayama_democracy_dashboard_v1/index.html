@@ -428,20 +428,52 @@
 
         function selectFlowProject(projectId) {
             STATE.selectedProject = projectId;
+
+            // リスト内のアクティブ状態を更新
             document.querySelectorAll('#flow-project-list .card').forEach(el => el.classList.remove('active', 'border-blue-500'));
             const activeEl = document.getElementById(`flow-p-${projectId}`);
-            if (activeEl) activeEl.classList.add('active', 'border-blue-500');
-
-            // プレースホルダーを非表示にし、コンテンツを表示（モバイル・デスクトップ共通）
-            document.getElementById('flow-detail-placeholder').classList.add('hidden');
-            document.getElementById('flow-detail-content').classList.remove('hidden');
-
-            if (window.innerWidth < 768) {
-                document.getElementById('flow-list-pane').classList.add('hidden');
-                document.getElementById('flow-detail-pane').classList.remove('hidden', 'md:flex');
-                document.getElementById('flow-detail-pane').classList.add('flex');
+            if (activeEl) {
+                activeEl.classList.add('active');
+                activeEl.classList.add('border-blue-500');
             }
-            renderDetailContent(projectId);
+
+            const listPane = document.getElementById('flow-list-pane');
+            const detailPane = document.getElementById('flow-detail-pane');
+            const placeholder = document.getElementById('flow-detail-placeholder');
+            const content = document.getElementById('flow-detail-content');
+
+            // モバイル・デスクトップ共通でプレースホルダーを隠し、コンテンツを表示
+            if (placeholder) {
+                placeholder.classList.add('hidden');
+                placeholder.style.display = 'none';
+            }
+            if (content) {
+                content.classList.remove('hidden');
+                content.style.display = 'flex';
+            }
+
+            // モバイル表示切り替え
+            if (window.innerWidth < 768) {
+                if (listPane) listPane.classList.add('hidden');
+                if (detailPane) {
+                    detailPane.classList.remove('hidden');
+                    detailPane.classList.remove('md:flex');
+                    detailPane.classList.add('flex');
+                    detailPane.style.display = 'flex';
+                }
+            } else {
+                // デスクトップでもし隠れていたら表示（リサイズ時などの考慮）
+                if (detailPane) {
+                    detailPane.classList.remove('hidden');
+                    detailPane.style.display = 'flex';
+                }
+            }
+
+            try {
+                renderDetailContent(projectId);
+            } catch (e) {
+                console.error("Error rendering detail content:", e);
+            }
         }
 
         function renderDetailContent(projectId) {
