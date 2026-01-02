@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://kanzaki-okayama.github.io/digital-democracy-poc/sitemap.xml

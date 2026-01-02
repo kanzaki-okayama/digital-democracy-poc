@@ -13,7 +13,10 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>デジタル民主主義PoC</title>
+  <title>デジタル民主主義PoC | 岡山市の未来を共に描く市民参加型プラットフォーム</title>
+  <meta name="description"
+    content="岡山市の市民の声とAI技術、行政データを融合させた新しい市民参加型プラットフォームのPoC（概念実証）です。意見投稿マップや議事録分析ダッシュボードを通じて、地域の未来を可視化します。" />
+  <link rel="canonical" href="https://kanzaki-okayama.github.io/digital-democracy-poc/" />
 
   <!-- OGP & Twitter Card -->
   <meta property="og:title" content="デジタル民主主義PoC - 岡山市" />
@@ -27,6 +30,26 @@
   <meta name="twitter:description" content="市民の声とAI技術、行政データを融合させた新しい市民参加型プラットフォームのPoC（概念実証）です。" />
   <meta name="twitter:image"
     content="https://kanzaki-okayama.github.io/digital-democracy-poc/data/ogp_social_preview.png" />
+
+  <!-- Structured Data (JSON-LD) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "デジタル民主主義PoC",
+    "url": "https://kanzaki-okayama.github.io/digital-democracy-poc/",
+    "description": "岡山市における市民参加型デジタルプラットフォームの実証実験サイト。",
+    "publisher": {
+      "@type": "Organization",
+      "name": "Okayama Digital Democracy Project"
+    },
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": "https://kanzaki-okayama.github.io/digital-democracy-poc/?q={search_term_string}",
+      "query-input": "required name=search_term_string"
+    }
+  }
+  </script>
 
   <!-- Fonts & Icons -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -63,7 +86,16 @@
 
   <!-- 🧩 コンテンツ領域 -->
   <main id="content">
-    <!-- main.js によって動的にコンテンツが挿入されます -->
+    <div style="padding: 40px; text-align: center; color: #64748b;">
+      <h1>デジタル民主主義の実証実験（PoC）</h1>
+      <p>岡山市の未来を共に描くための市民参加型プラットフォームです。</p>
+      <ul>
+        <li><strong>意見投稿マップ</strong>: 地域のご意見を地図上に可視化。</li>
+        <li><strong>議論の状況</strong>: 議事録をAIで分析し、議論の全体像を俯瞰。</li>
+        <li><strong>関係性マップ</strong>: 課題と価値観のつながりを視覚化。</li>
+      </ul>
+      <p>※JavaScriptを有効にしてご利用ください。</p>
+    </div>
   </main>
 
   <!-- 💬 投稿モーダル -->
